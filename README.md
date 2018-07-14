@@ -17,19 +17,18 @@ I don't care for Windows (in this matter, anyway).
 |                                               |                                   | privacy concerns
 | Libre Office, Microsoft Word or any other word processor | you choose who receives the data (at least in some way) | word processors are usually **huge** (this might not be a con for the vast majority of people as some kind of office suite is usually already installed on the system) and not specialized for such tasks |
 |                                               | offline usage | really tedious sometimes (templates, messing around with the resulting look) |
-| Specialized desktop applications | privacy | There are a few applications which do this but are VERY **impractical** to install, let alone use. Most of the time, I did not even manage to run the application because it missed dependencies. As an end user, I really do not want to mess around with that, I'm lazy. It's frustrating. |
+| Specialized desktop applications | privacy | There are a few applications which do this but are VERY **impractical** to install, let alone use. Most of the time, I did not even manage to run the application because it missed dependencies. As an end user, I really do not want to mess around with that, I'm lazy````. It's frustrating. |
 
 **System requirements**
 
 Nonfunctional requirements
 - the main language will be Rust (for the reason mentioned in the introductory paragraph)
-- use NoSQL database - the data will most probably be different from user to user (instead of NULL values everywhere, 
-  use JSON documents instead)
+- use JSON documents to store the data
 - efficiency is not the key here as the normal user will not use the app every day but only occasionally and only
   for a short period of time (that's the whole point of this application!)
 
 Functional requirements
-- the application will work straight out of the box (AppImage, maybe?)
+- the application will work straight out of the box (AppImage if necessary, maybe?)
 - put emphasis on the ease of use (launch the app, quickly create a CV, possibly generate a PDF and quit)
 - no fancy graphics (might also want to create a text-based interface), basic user interface
 - CV data created must be portable to other machines and perhaps human-readable
