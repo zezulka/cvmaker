@@ -1,0 +1,6 @@
+[package]
+name = "cvmaker"
+version = "0.1.0"
+authors = ["Miloslav Žežulka <zezulka95@gmail.com>"]
+
+[dependencies]
