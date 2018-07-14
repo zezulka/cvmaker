@@ -7,6 +7,15 @@ use cursive::views::Dialog;
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+// From the use cases, we can derive individual responsibilities (=modules) the cvmaker has:
+//     Render a CV based on the selected data
+//     Serialize/Deserialize JSON from the CV sources folder
+//     there will also be some configuration necessary (at least folder in which the data resides)
+//     DAO structs which will manipulate the CV structs
+//     part of the application which will handle graphics and user events
+//         a subset of this module should also define any necessary structs (like buttons or forms)
+//
+
 fn main() {
     let mut siv = Cursive::default();
 
@@ -70,7 +79,7 @@ fn main() {
     // Turning it off will leave the menu always visible.
     // Try uncommenting this line!
 
-    // siv.set_autohide_menu(false);
+    siv.set_autohide_menu(false);
 
     siv.add_global_callback(Key::Esc, |s| s.select_menubar());
 

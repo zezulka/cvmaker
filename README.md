@@ -33,4 +33,12 @@ Functional requirements
 - no fancy graphics (might also want to create a text-based interface), basic user interface
 - CV data created must be portable to other machines and perhaps human-readable
 
+Use cases
+- add a new CV (user might want to create multiple CVs based on employee/other conditions)
+- remove/edit already existing CV
+- generate a PDF
+- it would be nice to have a feature which would clone already existing CV 
+- it would be even nicer to have a feature which would enable a user to keep his/her CVs in sync in case
+   he/she changes his/her marital status or permanent address, for example
+- this should be enough for starters, more features might come in the future...
 

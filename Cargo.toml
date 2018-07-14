@@ -5,3 +5,8 @@ authors = ["Miloslav Žežulka <zezulka95@gmail.com>"]
 
 [dependencies]
 cursive = "0.8.2"
+chrono = "0.4.4"
+email-format = "0.6.0"
+phonenumber = "0.2.1+8.9.0"
+url = "1.7.1"
+iso_country = "0.1.2"
