@@ -18,7 +18,7 @@ mod tests {
     }
 }
 
-// Coming up with a address scheme is a pain itself. Let's at least
+// Coming up with an address scheme is a pain in itself. Let's at least
 // define some format
 // https://en.wikipedia.org/wiki/Address_(geography)
 struct Address {
@@ -28,29 +28,85 @@ struct Address {
     country : Country
 }
 
+enum MaritalStatus {
+    Married,
+    Single,
+    Other(String)
+}
+
 struct BasicInfo {
     name : String,
     surname : String,
-    // maybe incorporate given name
     dob : NaiveDate,
     email : Email,
     phone : PhoneNumber,
     website : Url,
-    address : Address
+    address : Address,
+    marital_status : MaritalStatus,
+}
+
+struct Year {
+    year : u32
+}
+
+impl Year {
+    fn new(year : u32) -> Year {
+        if year < 1900 {
+            panic!("Please enter a sane year (1900-).");
+        }
+        Year { year }
+    }
+}
+
+impl Ord for Year {
+    fn cmp(&self, other : &Year) -> Ordering {
+        self.year.cmp(&other.year)
+    }
+}
+
+impl PartialOrd for Year {
+    fn partial_cmp(&self, other: &Year) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+struct TimeSpan {
+    from : Year,
+    to : Year
+}
+
+impl TimeSpan {
+    fn new(from : Year, to : Year) -> TimeSpan {
+        if from > to {
+            panic!("The lefthand boundary must be lesser or equal to the righthand one.");
+        }
+        TimeSpan { from, to }
+    }
 }
 
 struct Education {
-    // TODO
+    span : TimeSpan,
+    uni_name : String,
+    degree : String,
+    field_of_study : String
 }
 
 struct Experience {
-    // TODO
+    employer : String,
+    job_name : String,
+    description : String,
+    span : TimeSpan
+}
+
+struct Language {
+
 }
 
 pub struct Cv {
     basic : BasicInfo,
-    education : Education,
-    experience : Experience,
+    education : Vec<Education>,
+    experience : Vec<Experience>,
+    languages : Vec<Language>
 }
 
 impl Cv {

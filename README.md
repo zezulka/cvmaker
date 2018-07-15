@@ -37,6 +37,8 @@ Use cases
 - add a new CV (user might want to create multiple CVs based on employee/other conditions)
 - remove/edit already existing CV
 - generate a PDF
+- user should be able to define custom fields (this might be very handy for addresses, for example) as we cannot
+  predict what will be necessary
 - it would be nice to have a feature which would clone already existing CV 
 - it would be even nicer to have a feature which would enable a user to keep his/her CVs in sync in case
    he/she changes his/her marital status or permanent address, for example
