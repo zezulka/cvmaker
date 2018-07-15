@@ -1,4 +1,11 @@
 extern crate cursive;
+extern crate chrono;
+extern crate email_format;
+extern crate phonenumber;
+extern crate url;
+extern crate iso_country;
+extern crate isolang;
+mod logic;
 
 use cursive::event::Key;
 use cursive::menu::MenuTree;

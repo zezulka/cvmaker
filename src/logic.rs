@@ -1,19 +1,16 @@
-extern crate chrono;
-extern crate email_format;
-extern crate phonenumber;
-extern crate url;
-extern crate iso_country;
-
-use chrono::prelude::*;
+use chrono::{NaiveDate};
 use email_format::Email;
 use phonenumber::PhoneNumber;
 use url::Url;
 use iso_country::Country;
+use isolang::Language;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
-    fn ok() {
+    #[should_panic]
+    fn year_invalid() {
 
     }
 }
@@ -45,38 +42,13 @@ struct BasicInfo {
     marital_status : MaritalStatus,
 }
 
-struct Year {
-    year : u32
-}
-
-impl Year {
-    fn new(year : u32) -> Year {
-        if year < 1900 {
-            panic!("Please enter a sane year (1900-).");
-        }
-        Year { year }
-    }
-}
-
-impl Ord for Year {
-    fn cmp(&self, other : &Year) -> Ordering {
-        self.year.cmp(&other.year)
-    }
-}
-
-impl PartialOrd for Year {
-    fn partial_cmp(&self, other: &Year) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 struct TimeSpan {
-    from : Year,
-    to : Year
+    from : NaiveDate,
+    to : NaiveDate
 }
 
 impl TimeSpan {
-    fn new(from : Year, to : Year) -> TimeSpan {
+    fn new(from : NaiveDate, to : NaiveDate) -> TimeSpan {
         if from > to {
             panic!("The lefthand boundary must be lesser or equal to the righthand one.");
         }
@@ -88,25 +60,53 @@ struct Education {
     span : TimeSpan,
     uni_name : String,
     degree : String,
-    field_of_study : String
+    field_of_study : String,
 }
 
 struct Experience {
+    span : TimeSpan,
     employer : String,
     job_name : String,
     description : String,
-    span : TimeSpan
 }
 
-struct Language {
+// Based on the CEFR model.
+enum LanguageProficiency {
+    A1,
+    A2,
+    B1,
+    B2,
+    C1,
+    C2
+}
 
+impl LanguageProficiency {
+    fn description(&self) -> &'static str {
+        use self::LanguageProficiency::*;
+        match self {
+           A1 => "Beginner",
+           A2 => "Elementary",
+           B1 => "Intermediate",
+           B2 => "Upper Intermediate",
+           C1 => "Advanced",
+           C2 => "Proficiency",
+           _ => panic!("Unknown level")
+        }
+    }
+}
+
+// Language would be ambiguous
+struct Lang {
+    language : Language,
+    proficiency : LanguageProficiency,
+    notes : String
 }
 
 pub struct Cv {
     basic : BasicInfo,
     education : Vec<Education>,
     experience : Vec<Experience>,
-    languages : Vec<Language>
+    languages : Vec<Lang>
 }
 
 impl Cv {
