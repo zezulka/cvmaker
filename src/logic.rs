@@ -1,4 +1,4 @@
-use chrono::{NaiveDate};
+use chrono::{NaiveDate, Datelike};
 use email_format::Email;
 use phonenumber::PhoneNumber;
 use url::Url;
@@ -10,8 +10,15 @@ mod tests {
     use super::*;
     #[test]
     #[should_panic]
-    fn year_invalid() {
+    fn timespan_invalid() {
+        TimeSpan::new(NaiveDate::from_ymd(2000, 1, 2), NaiveDate::from_ymd(2000, 1, 1));
+    }
 
+    #[test]
+    fn timespan_ok() {
+        let ts = TimeSpan::new(NaiveDate::from_ymd(2000, 1, 1), NaiveDate::from_ymd(2000, 5, 1));
+        assert_eq!(ts.from.year(), ts.to.year());
+        assert_eq!(ts.to.month() - ts.from.month(), 4);
     }
 }
 
@@ -25,21 +32,18 @@ struct Address {
     country : Country
 }
 
-enum MaritalStatus {
-    Married,
-    Single,
-    Other(String)
+enum Contact {
+    Email(Email),
+    Website(Url),
+    Address(Address),
+    Phone(PhoneNumber)
 }
 
 struct BasicInfo {
     name : String,
     surname : String,
     dob : NaiveDate,
-    email : Email,
-    phone : PhoneNumber,
-    website : Url,
-    address : Address,
-    marital_status : MaritalStatus,
+    contact : Vec<Contact>,
 }
 
 struct TimeSpan {
@@ -90,7 +94,7 @@ impl LanguageProficiency {
            B2 => "Upper Intermediate",
            C1 => "Advanced",
            C2 => "Proficiency",
-           _ => panic!("Unknown level")
+           _ => panic!("Unknown proficiency")
         }
     }
 }
