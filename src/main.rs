@@ -5,10 +5,11 @@ extern crate phonenumber;
 extern crate url;
 extern crate iso_country;
 extern crate isolang;
+extern crate linked_hash_set;
 #[macro_use]
 extern crate derive_builder;
 
-mod logic;
+mod base;
 
 use cursive::event::Key;
 use cursive::menu::MenuTree;

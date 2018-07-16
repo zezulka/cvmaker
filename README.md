@@ -23,7 +23,8 @@ I don't care for Windows (in this matter, anyway).
 
 Nonfunctional requirements
 - the main language will be Rust (for the reason mentioned in the introductory paragraph)
-- use JSON documents to store the data
+- use JSON documents to store the data (and probably the MongoDB backend -> it would be messy to handle CVs on a 
+                                        cv-per-file level)
 - efficiency is not the key here as the normal user will not use the app every day but only occasionally and only
   for a short period of time (that's the whole point of this application!)
 

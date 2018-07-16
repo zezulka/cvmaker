@@ -4,6 +4,8 @@ use url::Url;
 use iso_country::Country;
 use isolang::Language;
 use fast_chemail::is_valid_email;
+use linked_hash_set::LinkedHashSet;
+use std::hash::{Hash, Hasher};
 
 #[cfg(test)]
 mod tests {
@@ -31,7 +33,7 @@ mod tests {
             .name("Peter".to_string())
             .surname("Raskolnikov".to_string())
             .dob(Some(NaiveDate::from_ymd(1970, 1, 1)))
-            .contacts(vec![])
+            .contacts(LinkedHashSet::new())
             .build()
             .unwrap();
         let cv = CVBuilder::default().basic(basic_info).build();
@@ -50,31 +52,50 @@ mod tests {
 
     #[test]
     fn builder_cv_basic_ok() {
-        let basic_info = BasicInfoBuilder::default()
+        let cv = CVBuilder::default().basic(basic_info_factory()).build();
+    }
+
+    #[test]
+    fn mutate_cv() {
+    }
+
+    fn basic_info_factory() -> BasicInfo {
+        let email = Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap());
+        let mut set = LinkedHashSet::new();
+        set.insert(email);
+        BasicInfoBuilder::default()
             .name("Peter".to_string())
             .surname("Raskolnikov".to_string())
             .dob(Some(NaiveDate::from_ymd(1970, 1, 1)))
-            .contacts(vec![Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap())])
+            .contacts(set)
             .build()
-            .unwrap();
-        let cv = CVBuilder::default().basic(basic_info).build();
+            .unwrap()
     }
 }
 
 // Coming up with an address scheme is a pain in itself. Let's at least
 // define some format
 // https://en.wikipedia.org/wiki/Address_(geography)
-#[derive(Clone, Debug)]
-struct Address {
-    street : String,
-    street_subunit : u32, // this is usually number of the building the address refers to
-    postal_code : u32,
-    country : Country
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Address {
+    pub street : String,
+    pub street_subunit : u32, // this is usually number of the building the address refers to
+    pub postal_code : u32,
+    pub country : Country
 }
 
-#[derive(Clone, Debug)]
-struct EmailAddress {
-    address : String
+impl Hash for Address {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.street.hash(state);
+        self.street_subunit.hash(state);
+        self.postal_code.hash(state);
+        format!("{}", self.country).hash(state);
+    }
+}
+
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct EmailAddress {
+    pub address : String
 }
 
 impl EmailAddress {
@@ -86,25 +107,37 @@ impl EmailAddress {
     }
 }
 
-#[derive(Clone, Debug)]
-enum Contact {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Contact {
     Email(EmailAddress),
     Website(Url),
     Address(Address),
     Phone(PhoneNumber)
 }
 
+impl Hash for Contact {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use self::Contact::*;
+        match self {
+            Email(ref addr) => addr.hash(state),
+            Website(ref url) => url.hash(state),
+            Address(ref addr) => addr.hash(state),
+            Phone(ref num) => format!("{}", num).hash(state),
+        }
+    }
+}
+
 #[derive(Builder, Clone, Default, Debug)]
 #[builder(build_fn(validate = "Self::validate"))]
-struct BasicInfo {
-    name : String,
-    surname : String,
+pub struct BasicInfo {
+    pub name : String,
+    pub surname : String,
     // In order to generate the builder for BasicInfo (and, transitively, for CV), we cannot
     // have the "raw" NaiveDate, because Default trait implementation is required (and, obviously,
     // there is no such date which could be considered as the default one)
-    dob : Option<NaiveDate>,
+    pub dob : Option<NaiveDate>,
     // One caveat : we want at least one contact present in the contacts. Tests should catch this.
-    contacts : Vec<Contact>,
+    contacts : LinkedHashSet<Contact>,
 }
 
 impl BasicInfoBuilder {
@@ -124,10 +157,10 @@ impl BasicInfoBuilder {
     }
 }
 
-#[derive(Clone, Debug)]
-struct TimeSpan {
-    from : NaiveDate,
-    to : NaiveDate
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct TimeSpan {
+    pub from : NaiveDate,
+    pub to : NaiveDate
 }
 
 impl TimeSpan {
@@ -139,25 +172,25 @@ impl TimeSpan {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Education {
-    span : TimeSpan,
-    uni_name : String,
-    degree : String,
-    field_of_study : String,
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Education {
+    pub span : TimeSpan,
+    pub uni_name : String,
+    pub degree : String,
+    pub field_of_study : String,
 }
 
-#[derive(Clone, Debug)]
-struct Experience {
-    span : TimeSpan,
-    employer : String,
-    job_name : String,
-    description : String,
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Experience {
+    pub span : TimeSpan,
+    pub employer : String,
+    pub job_name : String,
+    pub description : String,
 }
 
 // Based on the CEFR model.
-#[derive(Clone, Debug)]
-enum LanguageProficiency {
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub enum LanguageProficiency {
     A1,
     A2,
     B1,
@@ -182,21 +215,18 @@ impl LanguageProficiency {
 }
 
 // Language would be ambiguous
-#[derive(Clone, Debug)]
-struct Lang {
-    language : Language,
-    proficiency : LanguageProficiency,
-    notes : String
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Lang {
+    pub language : Language,
+    pub proficiency : LanguageProficiency,
+    pub notes : String
 }
 
 #[derive(Default, Builder, Debug)]
 #[builder(setter(into))]
 pub struct CV {
-    basic : BasicInfo,
-    education : Vec<Education>,
-    experience : Vec<Experience>,
-    languages : Vec<Lang>
-}
-
-impl CV {
+    pub basic : BasicInfo,
+    pub education : LinkedHashSet<Education>,
+    pub experience : LinkedHashSet<Experience>,
+    pub languages : LinkedHashSet<Lang>
 }
