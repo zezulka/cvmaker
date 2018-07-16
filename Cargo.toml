@@ -6,8 +6,9 @@ authors = ["Miloslav Žežulka <zezulka95@gmail.com>"]
 [dependencies]
 cursive = "0.8.2"
 chrono = "0.4.4"
-email-format = "0.6.0"
+fast_chemail = "0.9.5"
 phonenumber = "0.2.1+8.9.0"
 url = "1.7.1"
 iso_country = "0.1.2"
 isolang = "0.2.1"
+derive_builder = "0.5.1"

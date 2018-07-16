@@ -1,10 +1,13 @@
 extern crate cursive;
 extern crate chrono;
-extern crate email_format;
+extern crate fast_chemail;
 extern crate phonenumber;
 extern crate url;
 extern crate iso_country;
 extern crate isolang;
+#[macro_use]
+extern crate derive_builder;
+
 mod logic;
 
 use cursive::event::Key;
