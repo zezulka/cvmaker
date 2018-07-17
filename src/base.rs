@@ -6,6 +6,7 @@ use isolang::Language;
 use fast_chemail::is_valid_email;
 use linked_hash_set::LinkedHashSet;
 use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
 
 #[cfg(test)]
 mod tests {
@@ -28,31 +29,13 @@ mod tests {
     // uninitialized mandatory attributes.
     #[test]
     #[should_panic]
-    fn builder_cv_basic_empty_contacts() {
-        let basic_info = BasicInfoBuilder::default()
-            .name("Peter".to_string())
-            .surname("Raskolnikov".to_string())
-            .dob(Some(NaiveDate::from_ymd(1970, 1, 1)))
-            .contacts(LinkedHashSet::new())
-            .build()
-            .unwrap();
-        let cv = CVBuilder::default().basic(basic_info).build();
-    }
-
-    #[should_panic]
-    fn builder_cv_basic_empty_contacts_second_take() {
-        let basic_info = BasicInfoBuilder::default()
-            .name("Peter".to_string())
-            .surname("Raskolnikov".to_string())
-            .dob(Some(NaiveDate::from_ymd(1970, 1, 1)))
-            .build()
-            .unwrap();
-        let cv = CVBuilder::default().basic(basic_info).build();
+    fn builder_basic_info_empty_contacts() {
+        BasicInfo::new("Whata", "Pity", NaiveDate::from_ymd(2000, 1, 1), LinkedHashSet::new());
     }
 
     #[test]
     fn builder_cv_basic_ok() {
-        let cv = CVBuilder::default().basic(basic_info_factory()).build();
+        let cv = CVBuilder::default(PathBuf::from("/tmp/abc.txt"), basic_info_factory()).build();
     }
 
     #[test]
@@ -63,13 +46,7 @@ mod tests {
         let email = Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap());
         let mut set = LinkedHashSet::new();
         set.insert(email);
-        BasicInfoBuilder::default()
-            .name("Peter".to_string())
-            .surname("Raskolnikov".to_string())
-            .dob(Some(NaiveDate::from_ymd(1970, 1, 1)))
-            .contacts(set)
-            .build()
-            .unwrap()
+        BasicInfo::new("Peter", "Raskolnikov", NaiveDate::from_ymd(2000, 1, 1), set)
     }
 }
 
@@ -127,8 +104,7 @@ impl Hash for Contact {
     }
 }
 
-#[derive(Builder, Clone, Default, Debug)]
-#[builder(build_fn(validate = "Self::validate"))]
+#[derive(Clone, Default, Debug)]
 pub struct BasicInfo {
     pub name : String,
     pub surname : String,
@@ -137,30 +113,27 @@ pub struct BasicInfo {
     // there is no such date which could be considered as the default one)
     pub dob : Option<NaiveDate>,
     // One caveat : we want at least one contact present in the contacts. Tests should catch this.
-    contacts : LinkedHashSet<Contact>,
+    pub contacts : LinkedHashSet<Contact>,
 }
 
-impl BasicInfoBuilder {
-    fn validate(&self) -> Result<(), String> {
-        let err_str = "You must provide at least one contact in your CV.";
-        match self.contacts {
-            // This should not even happen because of the Default trait
-            // but let's not be too clever here.
-            None => Err(err_str.to_string()),
-            Some(ref vec) => {
-                if vec.is_empty() {
-                    return Err(err_str.to_string());
-                }
-                Ok(())
-            }
+impl<'a> BasicInfo {
+    fn new(name : &'a str, surname : &'a str, dob : NaiveDate, contacts : LinkedHashSet<Contact>) -> BasicInfo {
+        if contacts.is_empty() {
+            panic!("Contacts cannot be empty. Please provide at least one contact.");
+        }
+        BasicInfo {
+            name : name.to_string(),
+            surname : surname.to_string(),
+            dob : Some(dob),
+            contacts
         }
     }
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub struct TimeSpan {
-    pub from : NaiveDate,
-    pub to : NaiveDate
+    from : NaiveDate,
+    to : NaiveDate
 }
 
 impl TimeSpan {
@@ -223,10 +196,20 @@ pub struct Lang {
 }
 
 #[derive(Default, Builder, Debug)]
-#[builder(setter(into))]
 pub struct CV {
+    pub path : PathBuf,
     pub basic : BasicInfo,
     pub education : LinkedHashSet<Education>,
     pub experience : LinkedHashSet<Experience>,
     pub languages : LinkedHashSet<Lang>
+}
+
+impl CVBuilder {
+    pub fn default(path : PathBuf, basic : BasicInfo) -> CVBuilder {
+        CVBuilder {
+            path : Some(path), // 'Some' because that's how the builder is generated, let's honor that
+            basic : Some(basic),
+            ..Default::default()
+        }
+    }
 }
