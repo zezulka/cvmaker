@@ -1,9 +1,17 @@
+use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::views::Dialog;
+use cursive::views::{Dialog, Canvas, EditView, SelectView, LinearLayout, TextArea, TextView,
+                     TextContent};
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::ops::Range;
+
+enum Order {
+    Ascending,
+    Descending
+}
 
 pub struct Graphics {
     engine : Cursive,
@@ -23,8 +31,71 @@ impl Graphics {
 
     fn init(&mut self) {
         self.add_menu();
-        self.engine.add_layer(Dialog::text("Hit <Esc> to show the menu!"));
+        //self.engine.add_layer(Dialog::text("Hit <Esc> to show the menu!"));
+        let canvas = Canvas::new(())
+            .with_draw(|printer, _| {
+
+            });
+        self.engine.add_layer(canvas);
+        self.add_form();
         self.engine.add_global_callback(Key::Esc, |s| s.select_menubar());
+    }
+
+    // Creates a form row containing description on the left and an editable field on the right.
+    // The label must be nonempty.
+    fn form_row<'a>(label_text : &'a str, col_size : usize) -> LinearLayout {
+        if label_text.is_empty() {
+            panic!("Got empty label text, expected nonempty.");
+        }
+        LinearLayout::horizontal()
+            .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(col_size))
+            .child(EditView::new().fixed_width(col_size))
+    }
+
+    fn form_row_default_col_size<'a>(label_text : &'a str) -> LinearLayout {
+        Self::form_row(label_text, 20)
+    }
+
+    fn select_view_from_range(rng : Range<u32>) -> SelectView<u32> {
+        // we can reverse the range by calling .rev() on it
+        let mut sel_view : SelectView<u32> = SelectView::new().h_align(HAlign::Center);
+        for i in rng {
+            sel_view.add_item(format!("{}", i), i);
+        }
+        sel_view.popup()
+    }
+
+    // Creates a date picker. The idea is that there will be three (or two) combo boxes the user
+    // will use, preventing him from entering invalid date.
+    fn date_picker<'a>(label_text : &'a str, show_days : bool) -> LinearLayout {
+        let mut res = LinearLayout::horizontal()
+            .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(20))
+            .child(Self::select_view_from_range(1900..2019)) // TODO: this is only guessing
+            .child(Self::select_view_from_range(1..13));
+        if show_days {
+            res.add_child(Self::select_view_from_range(1..32)); // TODO: this is wrong, Feb 31...?
+        }
+        res
+    }
+
+    fn date_picker_without_days<'a>(label_text : &'a str) -> LinearLayout {
+        Self::date_picker(label_text, false)
+    }
+
+    fn full_date_picker<'a>(label_text : &'a str) -> LinearLayout {
+        Self::date_picker(label_text, true)
+    }
+
+    fn add_form(&mut self) {
+        let mut form = LinearLayout::vertical()
+            .child(Self::form_row_default_col_size("Name"))
+            .child(Self::form_row_default_col_size("Surname"))
+            .child(Self::full_date_picker("Date of birth"));
+        self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
+                .child(form))
+            .title("New CV")
+            .button("Create new CV", |s| { s.pop_layer();})
+        );
     }
 
     fn add_menu(&mut self) {
