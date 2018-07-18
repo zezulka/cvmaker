@@ -16,16 +16,11 @@ pub struct Graphics {
 
 impl Graphics {
     pub fn new() -> Graphics {
-       Graphics {
-           engine : Cursive::default()
-       }
+       Graphics { engine : Cursive::default() }
     }
 
     fn setup_looks(&mut self) {
-        match self.engine.load_theme_file("src/resources/theme.toml") {
-            Ok(_) => (),
-            Err(msg) => self.engine.quit()
-        }
+        self.engine.load_theme_file("src/resources/theme.toml");
     }
 
     pub fn run(&mut self) {
@@ -36,11 +31,7 @@ impl Graphics {
 
     fn init(&mut self) {
         self.add_menu();
-        //self.engine.add_layer(Dialog::text("Hit <Esc> to show the menu!"));
-        let canvas = Canvas::new(())
-            .with_draw(|printer, _| {
-
-            });
+        let canvas = Canvas::new(()).with_draw(|printer, _| {});
         self.engine.add_layer(canvas);
         self.add_form();
         self.engine.add_global_callback(Key::Esc, |s| s.select_menubar());
@@ -53,7 +44,8 @@ impl Graphics {
             panic!("Got empty label text, expected nonempty.");
         }
         LinearLayout::horizontal()
-            .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(col_size))
+            .child(TextView::new_with_content(TextContent::new(label_text))
+                .fixed_width(col_size))
             .child(EditView::new().fixed_width(col_size))
     }
 
@@ -97,7 +89,7 @@ impl Graphics {
     }
 
     fn add_contact_row(s: &mut Cursive) {
-        s.call_on_id("contacts", |view: &mut LinearLayout| {
+        s.call_on_id("Contacts", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::horizontal()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
@@ -105,32 +97,44 @@ impl Graphics {
         });
     }
 
-    fn experience() -> LinearLayout {
-        LinearLayout::vertical()
+    fn add_experience_row(s: &mut Cursive) {
+        s.call_on_id("Experience", |view: &mut LinearLayout| {
+            view.add_child(LinearLayout::horizontal()
+                .child(Self::contact_select_view())
+                .child(EditView::new().fixed_width(20))
+            )
+        });
     }
 
-    fn languages() -> LinearLayout {
-        LinearLayout::vertical()
+    fn add_language_row(s: &mut Cursive) {
+        s.call_on_id("Languages", |view: &mut LinearLayout| {
+            view.add_child(LinearLayout::horizontal()
+                .child(Self::contact_select_view())
+                .child(EditView::new().fixed_width(20))
+            )
+        });
     }
 
-    fn add_form(&mut self) {
-        let contacts = LinearLayout::vertical()
+    fn expandable_linear_layout<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive)) -> IdView<LinearLayout> {
+        LinearLayout::vertical()
             .child(LinearLayout::horizontal()
-                .child(TextView::new_with_content(TextContent::new("Contacts")).fixed_width(20))
-                .child(Button::new("Add another", Self::add_contact_row)))
+                .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20))
+                .child(Button::new("Add another", event_fun)))
             .child(LinearLayout::horizontal()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
             )
-            .with_id("contacts");
+            .with_id(label)
+    }
 
+    fn add_form(&mut self) {    ;;
         let mut form = LinearLayout::vertical()
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
             .child(Self::full_date_picker("Date of birth"))
-            .child(contacts)
-            .child(Self::experience())
-            .child(Self::languages());
+            .child(Self::expandable_linear_layout("Contacts", &Self::add_contact_row))
+            .child(Self::expandable_linear_layout("Languages", &Self::add_language_row))
+            .child(Self::expandable_linear_layout("Experience", &Self::add_experience_row));
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
                 .child(form))
             .title("New CV")
