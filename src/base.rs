@@ -92,6 +92,12 @@ pub enum Contact {
     Phone(PhoneNumber)
 }
 
+// Return all the possible types available for contacts as tuples (enum, str).
+// TODO : this feels dirty and should be done better!
+pub fn contact_types<'a>() -> Vec<&'a str> {
+    vec!["email", "website", "address", "phone"]
+}
+
 impl Hash for Contact {
     fn hash<H: Hasher>(&self, state: &mut H) {
         use self::Contact::*;

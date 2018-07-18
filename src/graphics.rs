@@ -2,16 +2,13 @@ use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::views::{Dialog, Canvas, EditView, SelectView, LinearLayout, TextArea, TextView,
-                     TextContent};
+use cursive::views::{Button, Dialog, Canvas, EditView, IdView, SelectView, LinearLayout,
+                     TextArea, TextView, TextContent};
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::ops::Range;
-
-enum Order {
-    Ascending,
-    Descending
-}
+use chrono::{Local, DateTime, Datelike};
+use base::contact_types;
 
 pub struct Graphics {
     engine : Cursive,
@@ -24,7 +21,15 @@ impl Graphics {
        }
     }
 
+    fn setup_looks(&mut self) {
+        match self.engine.load_theme_file("src/resources/theme.toml") {
+            Ok(_) => (),
+            Err(msg) => self.engine.quit()
+        }
+    }
+
     pub fn run(&mut self) {
+        self.setup_looks();
         self.init();
         self.engine.run();
     }
@@ -56,21 +61,20 @@ impl Graphics {
         Self::form_row(label_text, 20)
     }
 
-    fn select_view_from_range(rng : Range<u32>) -> SelectView<u32> {
-        // we can reverse the range by calling .rev() on it
-        let mut sel_view : SelectView<u32> = SelectView::new().h_align(HAlign::Center);
-        for i in rng {
-            sel_view.add_item(format!("{}", i), i);
-        }
+    fn select_view_from_range<T : Iterator<Item = i32>>(rng : T) -> SelectView<i32> {
+        let mut sel_view : SelectView<i32> = SelectView::new().h_align(HAlign::Center);
+        rng.for_each(|item| { sel_view.add_item(format!("{}", item), item)} );
         sel_view.popup()
     }
 
     // Creates a date picker. The idea is that there will be three (or two) combo boxes the user
     // will use, preventing him from entering invalid date.
     fn date_picker<'a>(label_text : &'a str, show_days : bool) -> LinearLayout {
+        let dt : DateTime<Local> = Local::now();
+        let yr = dt.year()+1;
         let mut res = LinearLayout::horizontal()
             .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(20))
-            .child(Self::select_view_from_range(1900..2019)) // TODO: this is only guessing
+            .child(Self::select_view_from_range((1900..yr).rev()))
             .child(Self::select_view_from_range(1..13));
         if show_days {
             res.add_child(Self::select_view_from_range(1..32)); // TODO: this is wrong, Feb 31...?
@@ -86,11 +90,47 @@ impl Graphics {
         Self::date_picker(label_text, true)
     }
 
+    fn contact_select_view() -> SelectView<String> {
+        let mut sel_view : SelectView<String> = SelectView::new().h_align(HAlign::Center);
+        contact_types().iter().for_each(|&item| { sel_view.add_item(item, item.to_string()) });
+        sel_view.popup()
+    }
+
+    fn add_contact_row(s: &mut Cursive) {
+        s.call_on_id("contacts", |view: &mut LinearLayout| {
+            view.add_child(LinearLayout::horizontal()
+                .child(Self::contact_select_view())
+                .child(EditView::new().fixed_width(20))
+            )
+        });
+    }
+
+    fn experience() -> LinearLayout {
+        LinearLayout::vertical()
+    }
+
+    fn languages() -> LinearLayout {
+        LinearLayout::vertical()
+    }
+
     fn add_form(&mut self) {
+        let contacts = LinearLayout::vertical()
+            .child(LinearLayout::horizontal()
+                .child(TextView::new_with_content(TextContent::new("Contacts")).fixed_width(20))
+                .child(Button::new("Add another", Self::add_contact_row)))
+            .child(LinearLayout::horizontal()
+                .child(Self::contact_select_view())
+                .child(EditView::new().fixed_width(20))
+            )
+            .with_id("contacts");
+
         let mut form = LinearLayout::vertical()
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
-            .child(Self::full_date_picker("Date of birth"));
+            .child(Self::full_date_picker("Date of birth"))
+            .child(contacts)
+            .child(Self::experience())
+            .child(Self::languages());
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
                 .child(form))
             .title("New CV")
