@@ -93,7 +93,7 @@ impl Graphics {
         sel_view.popup()
     }
 
-    fn add_contact_row(s: &mut Cursive) {
+    fn contact_row(s: &mut Cursive) {
         s.call_on_id("Contacts", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
                 .child(Self::contact_select_view())
@@ -102,7 +102,7 @@ impl Graphics {
         });
     }
 
-    fn add_experience_row(s: &mut Cursive) {
+    fn experience_row(s: &mut Cursive) {
         s.call_on_id("Experience", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
                 .child(Self::date_picker_without_days("From"))
@@ -115,7 +115,7 @@ impl Graphics {
     }
 
     //TODO : if user enters the "Other" option, let him fill in the "other" language
-    fn add_language_row(s: &mut Cursive) {
+    fn language_row(s: &mut Cursive) {
         s.call_on_id("Languages", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
                 .child(LinearLayout::horizontal()
@@ -129,7 +129,7 @@ impl Graphics {
         });
     }
 
-    fn add_education_row(s : &mut Cursive) {
+    fn education_row(s : &mut Cursive) {
         s.call_on_id("Education", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
                 .child(Self::date_picker_without_days("From"))
@@ -141,8 +141,8 @@ impl Graphics {
         });
     }
 
-    fn expandable_linear_layout<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive))
-        -> IdView<LinearLayout> {
+    fn expandable_linear_layout_contacts<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive))
+        -> LinearLayout {
         LinearLayout::vertical()
             .child(LinearLayout::horizontal()
                 .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20)))
@@ -152,7 +152,16 @@ impl Graphics {
                 .with_id(label))
             .child(LinearLayout::horizontal()
                 .child(Button::new("Add another", event_fun)))
-            .with_id("asfasdfadfasd")
+    }
+
+    fn expandable_linear_layout<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive))
+                                             -> LinearLayout {
+        LinearLayout::vertical()
+            .child(LinearLayout::horizontal()
+                .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20)))
+            .child(LinearLayout::vertical().with_id(label))
+            .child(LinearLayout::horizontal()
+                .child(Button::new("Add another", event_fun)))
     }
 
     fn add_form(&mut self) {
@@ -160,10 +169,10 @@ impl Graphics {
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
             .child(Self::full_date_picker("Date of birth"))
-            .child(Self::expandable_linear_layout("Contacts", &Self::add_contact_row))
-            .child(Self::expandable_linear_layout("Languages", &Self::add_language_row))
-            .child(Self::expandable_linear_layout("Education", &Self::add_education_row))
-            .child(Self::expandable_linear_layout("Experience", &Self::add_experience_row))
+            .child(Self::expandable_linear_layout_contacts("Contacts", &Self::contact_row))
+            .child(Self::expandable_linear_layout("Languages", &Self::language_row))
+            .child(Self::expandable_linear_layout("Education", &Self::education_row))
+            .child(Self::expandable_linear_layout("Experience", &Self::experience_row))
             .scrollable();
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
                 .child(form))
