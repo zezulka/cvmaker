@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Miloslav Žežulka <zezulka95@gmail.com>"]
 
 [dependencies]
-cursive = "0.8.2"
+cursive = { git = "https://github.com/gyscos/Cursive" }
 chrono = "0.4.4"
 fast_chemail = "0.9.5"
 phonenumber = "0.2.1+8.9.0"

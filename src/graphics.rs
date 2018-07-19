@@ -2,7 +2,8 @@ use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::views::{Button, Dialog, Canvas, EditView, IdView, SelectView, LinearLayout,
+use cursive::view::SizeConstraint;
+use cursive::views::{Button, Dialog, Canvas, EditView, IdView, SelectView, SliderView, LinearLayout,
                      TextArea, TextView, TextContent};
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -90,7 +91,7 @@ impl Graphics {
 
     fn add_contact_row(s: &mut Cursive) {
         s.call_on_id("Contacts", |view: &mut LinearLayout| {
-            view.add_child(LinearLayout::horizontal()
+            view.add_child(LinearLayout::vertical()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
             )
@@ -99,7 +100,7 @@ impl Graphics {
 
     fn add_experience_row(s: &mut Cursive) {
         s.call_on_id("Experience", |view: &mut LinearLayout| {
-            view.add_child(LinearLayout::horizontal()
+            view.add_child(LinearLayout::vertical()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
             )
@@ -108,7 +109,7 @@ impl Graphics {
 
     fn add_language_row(s: &mut Cursive) {
         s.call_on_id("Languages", |view: &mut LinearLayout| {
-            view.add_child(LinearLayout::horizontal()
+            view.add_child(LinearLayout::vertical()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
             )
@@ -119,12 +120,15 @@ impl Graphics {
         LinearLayout::vertical()
             .child(LinearLayout::horizontal()
                 .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20))
-                .child(Button::new("Add another", event_fun)))
-            .child(LinearLayout::horizontal()
+            )
+            .child(LinearLayout::vertical()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
+                .with_id(label)
             )
-            .with_id(label)
+            .child(LinearLayout::horizontal()
+                .child(Button::new("Add another", event_fun)))
+            .with_id("asfasdfadfasd")
     }
 
     fn add_form(&mut self) {    ;;
@@ -134,7 +138,8 @@ impl Graphics {
             .child(Self::full_date_picker("Date of birth"))
             .child(Self::expandable_linear_layout("Contacts", &Self::add_contact_row))
             .child(Self::expandable_linear_layout("Languages", &Self::add_language_row))
-            .child(Self::expandable_linear_layout("Experience", &Self::add_experience_row));
+            .child(Self::expandable_linear_layout("Experience", &Self::add_experience_row))
+            .scrollable();
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
                 .child(form))
             .title("New CV")
