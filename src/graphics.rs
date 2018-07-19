@@ -8,6 +8,9 @@ use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use chrono::{Local, DateTime, Datelike};
 use base::contact_types;
+use base::LanguageProficiency;
+use std::fmt::Display;
+use base::Language;
 
 pub struct Graphics {
     engine : Cursive,
@@ -55,8 +58,8 @@ impl Graphics {
         Self::form_row(label_text, 20)
     }
 
-    fn select_view_from_range<T : Iterator<Item = i32>>(rng : T) -> SelectView<i32> {
-        let mut sel_view : SelectView<i32> = SelectView::new().h_align(HAlign::Center);
+    fn select_view_from_range<S : Display + 'static, T : Iterator<Item = S>>(rng : T) -> SelectView<S> {
+        let mut sel_view : SelectView<S> = SelectView::new().h_align(HAlign::Center);
         rng.for_each(|item| { sel_view.add_item(format!("{}", item), item)} );
         sel_view.popup()
     }
@@ -102,43 +105,64 @@ impl Graphics {
     fn add_experience_row(s: &mut Cursive) {
         s.call_on_id("Experience", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
-                .child(Self::contact_select_view())
-                .child(EditView::new().fixed_width(20))
+                .child(Self::date_picker_without_days("From"))
+                .child(Self::date_picker_without_days("To"))
+                .child(Self::form_row_default_col_size("Employer"))
+                .child(Self::form_row_default_col_size("Job name"))
+                .child(Self::form_row_default_col_size("Description"))
             )
         });
     }
 
+    //TODO : if user enters the "Other" option, let him fill in the "other" language
     fn add_language_row(s: &mut Cursive) {
         s.call_on_id("Languages", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
-                .child(Self::contact_select_view())
-                .child(EditView::new().fixed_width(20))
+                .child(LinearLayout::horizontal()
+                    .child(TextView::new_with_content(TextContent::new("Name")).fixed_width(20))
+                    .child(Self::select_view_from_range(Language::iterator())))
+                .child(LinearLayout::horizontal()
+                    .child(TextView::new_with_content(TextContent::new("Proficiency")).fixed_width(20))
+                    .child(Self::select_view_from_range(LanguageProficiency::iterator())))
+                .child(Self::form_row_default_col_size("Additional notes"))
             )
         });
     }
 
-    fn expandable_linear_layout<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive)) -> IdView<LinearLayout> {
+    fn add_education_row(s : &mut Cursive) {
+        s.call_on_id("Education", |view: &mut LinearLayout| {
+            view.add_child(LinearLayout::vertical()
+                .child(Self::date_picker_without_days("From"))
+                .child(Self::date_picker_without_days("To"))
+                .child(Self::form_row_default_col_size("University"))
+                .child(Self::form_row_default_col_size("Degree"))
+                .child(Self::form_row_default_col_size("Field of study"))
+            )
+        });
+    }
+
+    fn expandable_linear_layout<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive))
+        -> IdView<LinearLayout> {
         LinearLayout::vertical()
             .child(LinearLayout::horizontal()
-                .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20))
-            )
+                .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20)))
             .child(LinearLayout::vertical()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
-                .with_id(label)
-            )
+                .with_id(label))
             .child(LinearLayout::horizontal()
                 .child(Button::new("Add another", event_fun)))
             .with_id("asfasdfadfasd")
     }
 
-    fn add_form(&mut self) {    ;;
+    fn add_form(&mut self) {
         let form = LinearLayout::vertical()
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
             .child(Self::full_date_picker("Date of birth"))
             .child(Self::expandable_linear_layout("Contacts", &Self::add_contact_row))
             .child(Self::expandable_linear_layout("Languages", &Self::add_language_row))
+            .child(Self::expandable_linear_layout("Education", &Self::add_education_row))
             .child(Self::expandable_linear_layout("Experience", &Self::add_experience_row))
             .scrollable();
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
@@ -148,6 +172,7 @@ impl Graphics {
         );
     }
 
+    // Fearlessly stolen from the cursive example.
     fn add_menu(&mut self) {
         // We'll use a counter to name new files.
         let counter = AtomicUsize::new(1);

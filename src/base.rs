@@ -2,11 +2,12 @@ use chrono::NaiveDate;
 use phonenumber::PhoneNumber;
 use url::Url;
 use iso_country::Country;
-use isolang::Language;
 use fast_chemail::is_valid_email;
 use linked_hash_set::LinkedHashSet;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::slice::Iter;
+use std::fmt::{Display, Error, Formatter};
 
 #[cfg(test)]
 mod tests {
@@ -175,10 +176,23 @@ pub enum LanguageProficiency {
     B1,
     B2,
     C1,
-    C2
+    C2,
+}
+
+impl Display for LanguageProficiency {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}", self.description())
+    }
 }
 
 impl LanguageProficiency {
+
+    pub fn iterator() -> Iter<'static, Self> {
+        use self::LanguageProficiency::*;
+        static PROFS : [LanguageProficiency; 6] = [A1, A2, B1, B2, C1, C2];
+        PROFS.into_iter()
+    }
+
     fn description(&self) -> &'static str {
         use self::LanguageProficiency::*;
         match self {
@@ -189,6 +203,41 @@ impl LanguageProficiency {
            C1 => "Advanced",
            C2 => "Proficiency"
         }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub enum Language {
+    Czech,
+    Slovak,
+    English,
+    Russian,
+    German,
+    Spanish,
+    Chinese,
+    Dutch,
+    French,
+    Polish,
+    Italian,
+    Arabic,
+    Portugese,
+    Korean,
+    Other
+}
+
+impl Language {
+    pub fn iterator() -> Iter<'static, Self> {
+        use self::Language::*;
+        static LANGS : [Language; 15] = [Czech, Slovak, English, Russian, German, Spanish, Chinese,
+                                         Dutch, French, Polish, Italian, Arabic, Portugese, Korean,
+                                        Other];
+        LANGS.into_iter()
+    }
+}
+
+impl Display for Language {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{:?}", self)
     }
 }
 
