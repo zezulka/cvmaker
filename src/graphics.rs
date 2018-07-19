@@ -2,12 +2,10 @@ use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::view::SizeConstraint;
-use cursive::views::{Button, Dialog, Canvas, EditView, IdView, SelectView, SliderView, LinearLayout,
-                     TextArea, TextView, TextContent};
+use cursive::views::{Button, Dialog, Canvas, EditView, IdView, SelectView,
+                     LinearLayout, TextView, TextContent};
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::ops::Range;
 use chrono::{Local, DateTime, Datelike};
 use base::contact_types;
 
@@ -21,7 +19,11 @@ impl Graphics {
     }
 
     fn setup_looks(&mut self) {
-        self.engine.load_theme_file("src/resources/theme.toml");
+        if let Err(msg) = self.engine.load_theme_file("src/resources/theme.toml") {
+            // We could also panic but receiving the error only means
+            // we fall back to the default theme which is ok for the time being.
+            eprintln!("Could not load the themes file: {:?}", msg);
+        }
     }
 
     pub fn run(&mut self) {
@@ -32,8 +34,7 @@ impl Graphics {
 
     fn init(&mut self) {
         self.add_menu();
-        let canvas = Canvas::new(()).with_draw(|printer, _| {});
-        self.engine.add_layer(canvas);
+        self.engine.add_layer(Canvas::new(()));
         self.add_form();
         self.engine.add_global_callback(Key::Esc, |s| s.select_menubar());
     }
@@ -132,7 +133,7 @@ impl Graphics {
     }
 
     fn add_form(&mut self) {    ;;
-        let mut form = LinearLayout::vertical()
+        let form = LinearLayout::vertical()
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
             .child(Self::full_date_picker("Date of birth"))

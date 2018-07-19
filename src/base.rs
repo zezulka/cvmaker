@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, Datelike};
+use chrono::NaiveDate;
 use phonenumber::PhoneNumber;
 use url::Url;
 use iso_country::Country;
@@ -187,8 +187,7 @@ impl LanguageProficiency {
            B1 => "Intermediate",
            B2 => "Upper Intermediate",
            C1 => "Advanced",
-           C2 => "Proficiency",
-           _ => panic!("Unknown proficiency")
+           C2 => "Proficiency"
         }
     }
 }
