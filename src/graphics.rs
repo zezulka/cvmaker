@@ -95,7 +95,7 @@ impl Graphics {
 
     fn contact_row(s: &mut Cursive) {
         s.call_on_id("Contacts", |view: &mut LinearLayout| {
-            view.add_child(LinearLayout::vertical()
+            view.add_child(LinearLayout::horizontal()
                 .child(Self::contact_select_view())
                 .child(EditView::new().fixed_width(20))
             )
@@ -141,15 +141,15 @@ impl Graphics {
         });
     }
 
-    fn expandable_linear_layout_contacts<'a>(label : &'a str, event_fun : &'static Fn(&mut Cursive))
+    fn expandable_linear_layout_contacts(event_fun : &'static Fn(&mut Cursive))
         -> LinearLayout {
         LinearLayout::vertical()
             .child(LinearLayout::horizontal()
-                .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20)))
+                .child(TextView::new_with_content(TextContent::new("Contacts")).fixed_width(20)))
             .child(LinearLayout::vertical()
-                .child(Self::contact_select_view())
-                .child(EditView::new().fixed_width(20))
-                .with_id(label))
+                .child(LinearLayout::horizontal().child(Self::contact_select_view())
+                    .child(EditView::new().fixed_width(20)))
+                .with_id("Contacts"))
             .child(LinearLayout::horizontal()
                 .child(Button::new("Add another", event_fun)))
     }
@@ -169,7 +169,7 @@ impl Graphics {
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
             .child(Self::full_date_picker("Date of birth"))
-            .child(Self::expandable_linear_layout_contacts("Contacts", &Self::contact_row))
+            .child(Self::expandable_linear_layout_contacts(&Self::contact_row))
             .child(Self::expandable_linear_layout("Languages", &Self::language_row))
             .child(Self::expandable_linear_layout("Education", &Self::education_row))
             .child(Self::expandable_linear_layout("Experience", &Self::experience_row))
