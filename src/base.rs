@@ -124,7 +124,7 @@ pub struct BasicInfo {
 }
 
 impl<'a> BasicInfo {
-    fn new(name : &'a str, surname : &'a str, dob : NaiveDate, contacts : LinkedHashSet<Contact>) -> BasicInfo {
+    pub fn new(name : &'a str, surname : &'a str, dob : NaiveDate, contacts : LinkedHashSet<Contact>) -> BasicInfo {
         if contacts.is_empty() {
             panic!("Contacts cannot be empty. Please provide at least one contact.");
         }
