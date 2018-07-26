@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate cursive;
 extern crate chrono;
 extern crate fast_chemail;

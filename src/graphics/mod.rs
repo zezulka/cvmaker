@@ -14,8 +14,12 @@ use std::fmt::Display;
 use base::{Contact, Language, CV, CVBuilder, BasicInfo};
 use std::path::PathBuf;
 use chrono::NaiveDate;
+use url::Url;
+use std::str::FromStr;
 
 mod datepicker;
+
+use self::datepicker::DateView;
 
 #[cfg(test)]
 mod tests {
@@ -77,10 +81,6 @@ impl Graphics {
         Self::form_row(label_text, 20)
     }
 
-    // Creates a date picker. The idea is that there will be three (or two) combo boxes the user
-    // will use, preventing him from entering invalid date.
-
-
     fn contact_select_view() -> SelectView<String> {
         let mut sel_view : SelectView<String> = SelectView::new().h_align(HAlign::Center);
         contact_types().iter().for_each(|&item| { sel_view.add_item(item, item.to_string()) });
@@ -99,8 +99,8 @@ impl Graphics {
     fn experience_row(s: &mut Cursive) {
         s.call_on_id("Experience", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
-                .child(Self::date_picker_without_days("From"))
-                .child(Self::date_picker_without_days("To"))
+                .child(DateView::new_without_days("From"))
+                .child(DateView::new_without_days("To"))
                 .child(Self::form_row_default_col_size("Employer"))
                 .child(Self::form_row_default_col_size("Job name"))
                 .child(Self::form_row_default_col_size("Description"))
@@ -126,8 +126,8 @@ impl Graphics {
     fn education_row(s : &mut Cursive) {
         s.call_on_id("Education", |view: &mut LinearLayout| {
             view.add_child(LinearLayout::vertical()
-                .child(Self::date_picker_without_days("From"))
-                .child(Self::date_picker_without_days("To"))
+                .child(DateView::new_without_days("From"))
+                .child(DateView::new_without_days("To"))
                 .child(Self::form_row_default_col_size("University"))
                 .child(Self::form_row_default_col_size("Degree"))
                 .child(Self::form_row_default_col_size("Field of study"))
@@ -162,7 +162,7 @@ impl Graphics {
         let form = LinearLayout::vertical()
             .child(Self::form_row_default_col_size("Name"))
             .child(Self::form_row_default_col_size("Surname"))
-            .child(Self::full_date_picker("Date of birth"))
+            .child(DateView::new_full("Date of birth"))
             .child(Self::expandable_linear_layout_contacts(&Self::contact_row))
             .child(Self::expandable_linear_layout("Languages", &Self::language_row))
             .child(Self::expandable_linear_layout("Education", &Self::education_row))
@@ -176,7 +176,9 @@ impl Graphics {
     }
 
     fn collect_contacts() -> LinkedHashSet<Contact> {
-        LinkedHashSet::new()
+        let mut lhs = LinkedHashSet::new();
+        lhs.insert(Contact::Website(Url::from_str("http://www.foo.bar").unwrap()));
+        lhs
     }
 
     fn collect_basic_info(curs : &mut Cursive) -> Option<BasicInfo> {

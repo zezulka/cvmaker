@@ -1,8 +1,8 @@
 use chrono::{DateTime, Local, NaiveDate, Datelike};
-use cursive::views::{IdView, LinearLayout, TextContent, TextView};
+use cursive::views::{LinearLayout, TextContent, TextView};
+use cursive::view::ViewWrapper;
 use cursive::traits::{View, Boxable};
 use graphics::select_view_from_range;
-use cursive::Printer;
 
 fn date_picker<'a>(label_text : &'a str, show_days : bool) -> LinearLayout {
     let dt : DateTime<Local> = Local::now();
@@ -19,48 +19,27 @@ fn date_picker<'a>(label_text : &'a str, show_days : bool) -> LinearLayout {
 
 trait DatePicker {
     fn retrieve_date(&mut self) -> Option<NaiveDate>;
-
 }
 
-struct DaylessDateView {
-    contents : LinearLayout,
+pub struct DateView {
+    view : LinearLayout,
 }
 
-impl DaylessDateView {
-    fn new<'a>(id : &'a str) -> DaylessDateView {
-        DaylessDateView { contents : date_picker(id, false) }
+impl DateView {
+    pub fn new_full<'a>(id : &'a str) -> DateView {
+        DateView { view : date_picker(id, true)}
+    }
+
+    pub fn new_without_days<'a>(id : &'a str) -> DateView {
+        DateView { view : date_picker(id, false)}
     }
 }
 
-impl View for DaylessDateView {
-    fn draw(&self, printer: &Printer) {
-        self.contents.draw(printer);
-    }
+impl ViewWrapper for DateView {
+    wrap_impl!(self.view : LinearLayout);
 }
 
-impl DatePicker for DaylessDateView {
-    fn retrieve_date(&mut self) -> Option<NaiveDate> {
-        unimplemented!()
-    }
-}
-
-struct FullDateView {
-    contents : LinearLayout,
-}
-
-impl FullDateView {
-    fn new<'a>(id : &'a str) -> FullDateView {
-        FullDateView { contents : date_picker(id, true)}
-    }
-}
-
-impl View for FullDateView {
-    fn draw(&self, printer: &Printer) {
-        self.contents.draw(printer);
-    }
-}
-
-impl DatePicker for FullDateView {
+impl DatePicker for DateView {
     fn retrieve_date(&mut self) -> Option<NaiveDate> {
         unimplemented!()
     }

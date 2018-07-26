@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{NaiveDate, Datelike};
 use phonenumber::PhoneNumber;
 use url::Url;
 use iso_country::Country;
