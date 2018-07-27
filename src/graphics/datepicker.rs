@@ -1,23 +1,24 @@
 use chrono::{DateTime, Local, NaiveDate, Datelike};
-use cursive::views::{LinearLayout, TextContent, TextView};
+use cursive::views::{LinearLayout, IdView, TextContent, TextView, SelectView};
 use cursive::view::ViewWrapper;
-use cursive::traits::{View, Boxable};
+use cursive::traits::{View, Boxable, Finder, Identifiable};
 use graphics::select_view_from_range;
+use std::ops::Range;
 
 fn date_picker<'a>(label_text : &'a str, show_days : bool) -> LinearLayout {
     let dt : DateTime<Local> = Local::now();
     let yr = dt.year()+1;
     let mut res = LinearLayout::horizontal()
         .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(20))
-        .child(select_view_from_range((1900..yr).rev()))
-        .child(select_view_from_range(1..13));
+        .child(select_view_from_range((1900..yr).rev()).with_id("yr"))
+        .child(select_view_from_range::<u32, Range<u32>>(1..13).with_id("month"));
     if show_days {
-        res.add_child(select_view_from_range(1..32)); // TODO: this is wrong, Feb 31...?
+        res.add_child(select_view_from_range::<u32, Range<u32>>(1..32).with_id("day")); // TODO: this is wrong, Feb 31...?
     }
     res
 }
 
-trait DatePicker {
+pub trait DatePicker {
     fn retrieve_date(&mut self) -> Option<NaiveDate>;
 }
 
@@ -26,12 +27,12 @@ pub struct DateView {
 }
 
 impl DateView {
-    pub fn new_full<'a>(id : &'a str) -> DateView {
-        DateView { view : date_picker(id, true)}
+    pub fn new_full<'a>(id : &'a str) -> IdView<DateView> {
+        DateView { view : date_picker(id, true)}.with_id(id)
     }
 
-    pub fn new_without_days<'a>(id : &'a str) -> DateView {
-        DateView { view : date_picker(id, false)}
+    pub fn new_without_days<'a>(id : &'a str) -> IdView<DateView> {
+        DateView { view : date_picker(id, false)}.with_id(id)
     }
 }
 
@@ -41,6 +42,17 @@ impl ViewWrapper for DateView {
 
 impl DatePicker for DateView {
     fn retrieve_date(&mut self) -> Option<NaiveDate> {
-        unimplemented!()
+        let year = self.view.find_id("yr", |s : &mut SelectView<i32>| s.selection());
+        if let Some(Some(year)) = year {
+            let month = self.view.find_id("month", |s : &mut SelectView<u32>| s.selection());
+            if let Some(Some(month)) = month {
+                let day = self.view.find_id("day", |s : &mut SelectView<u32>| s.selection());
+                if let Some(Some(day)) = day {
+                    return Some(NaiveDate::from_ymd(*year, *month, *day));
+                }
+                return Some(NaiveDate::from_ymd(*year, *month, 1));
+            }
+        }
+        None
     }
 }

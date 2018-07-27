@@ -90,7 +90,7 @@ pub enum Contact {
     Email(EmailAddress),
     Website(Url),
     Address(Address),
-    Phone(PhoneNumber)
+    Phone(PhoneNumber),
 }
 
 // Return all the possible types available for contacts as tuples (enum, str).
@@ -253,8 +253,11 @@ pub struct Lang {
 pub struct CV {
     pub path : PathBuf,
     pub basic : BasicInfo,
+    #[builder (default = "LinkedHashSet::new()")]
     pub education : LinkedHashSet<Education>,
+    #[builder (default = "LinkedHashSet::new()")]
     pub experience : LinkedHashSet<Experience>,
+    #[builder (default = "LinkedHashSet::new()")]
     pub languages : LinkedHashSet<Lang>
 }
 

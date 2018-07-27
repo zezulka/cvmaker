@@ -3,8 +3,9 @@ use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
 use linked_hash_set::LinkedHashSet;
-use cursive::views::{Button, BoxView, Dialog, Canvas, EditView, SelectView,
+use cursive::views::{IdView, Button, BoxView, Dialog, Canvas, EditView, SelectView,
                      LinearLayout, TextView, TextContent};
+use cursive::view::{ViewWrapper};
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use chrono::{Local, DateTime, Datelike};
@@ -16,16 +17,20 @@ use std::path::PathBuf;
 use chrono::NaiveDate;
 use url::Url;
 use std::str::FromStr;
+use cursive::event::Event;
+use std::io::{stdin, Read};
+use self::datepicker::{DateView, DatePicker};
 
 mod datepicker;
 
-use self::datepicker::DateView;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn form_basic_data() {
+        // Might need https://github.com/gyscos/Cursive/issues/271 for UI tests.
+        // Otherwise, things can get very clunky.
     }
 }
 
@@ -40,8 +45,8 @@ pub struct Graphics {
 }
 
 impl Graphics {
-    pub fn new() -> Graphics {
-        Graphics { engine : Cursive::default() }
+    pub fn new(engine : Cursive) -> Graphics {
+        Graphics { engine }
     }
 
     fn setup_looks(&mut self) {
@@ -53,12 +58,12 @@ impl Graphics {
     }
 
     pub fn run(&mut self) {
-        self.setup_looks();
         self.init();
         self.engine.run();
     }
 
     fn init(&mut self) {
+        self.setup_looks();
         self.add_menu();
         self.engine.add_layer(Canvas::new(()));
         self.add_form();
@@ -181,32 +186,22 @@ impl Graphics {
         lhs
     }
 
-    fn collect_basic_info(curs : &mut Cursive) -> Option<BasicInfo> {
-        let name = curs.call_on_id("Name", |s : &mut BoxView<EditView>| {
-            s.get_inner().get_content()
-        }).unwrap();
-        let surname = curs.call_on_id("Surname", |s : &mut BoxView<EditView>| {
-            s.get_inner().get_content()
-        }).unwrap();
-
-        let day = curs.call_on_id("Day", |s : &mut BoxView<EditView>| {
-            s.get_inner().get_content()
-        }).unwrap().parse::<u32>().unwrap();
-        let month = curs.call_on_id("Month", |s : &mut BoxView<EditView>| {
-            s.get_inner().get_content()
-        }).unwrap().parse::<u32>().unwrap();
-        let year = curs.call_on_id("Year", |s : &mut BoxView<EditView>| {
-            s.get_inner().get_content()
-        }).unwrap().parse::<i32>().unwrap();
-        Some(BasicInfo::new(&name, &surname,
-                            NaiveDate::from_ymd(year, month, day),
-                            Self::collect_contacts()))
+    fn collect_basic_info(c : &mut Cursive) -> Option<BasicInfo> {
+        let name = c.call_on_id("Name", |s : &mut BoxView<EditView>| s.get_inner().get_content())
+            .unwrap();
+        let surname = c.call_on_id("Surname", |s : &mut BoxView<EditView>| s.get_inner().get_content())
+            .unwrap();
+        let dob = c.call_on_id("Date of birth", |s : &mut DateView| s.retrieve_date()).unwrap().unwrap();
+        Some(BasicInfo::new(&name, &surname, dob, Self::collect_contacts()))
     }
 
     // This handler is responsible for collecting the data from the "New CV" form.
-    pub fn collect_form_data(curs : &mut Cursive) -> Option<CV> {
-        if let Some(basic) = Self::collect_basic_info(curs) {
-            return Some(CVBuilder::default(PathBuf::from("/tmp/abc.txt"), basic).build().unwrap());
+    pub fn collect_form_data(c : &mut Cursive) -> Option<CV> {
+        if let Some(basic) = Self::collect_basic_info(c) {
+            let cvbldr = CVBuilder::default(PathBuf::from("/tmp"), basic).build();
+            if let Ok(t) = cvbldr {
+                return Some(t)
+            }
         }
         None
     }

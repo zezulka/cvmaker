@@ -13,8 +13,9 @@ mod base;
 mod graphics;
 use std::error::Error;
 use graphics::Graphics;
+use cursive::Cursive;
 
 pub fn run() -> Result<(), Box<Error>> {
-    Graphics::new().run();
+    Graphics::new(Cursive::default()).run();
     Ok(())
 }
