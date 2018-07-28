@@ -176,7 +176,7 @@ impl Graphics {
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
             .child(form))
             .title("New CV")
-            .button("Create new CV", |s| { Self::collect_form_data(s); })
+            .button("Create new CV", |s| { println!("{:?}", Self::collect_form_data(s)); })
         );
     }
 

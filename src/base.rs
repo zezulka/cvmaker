@@ -251,7 +251,7 @@ pub struct Lang {
 
 #[derive(Default, Builder, Debug)]
 pub struct CV {
-    pub path : PathBuf,
+    pub path : Option<PathBuf>,
     pub basic : BasicInfo,
     #[builder (default = "LinkedHashSet::new()")]
     pub education : LinkedHashSet<Education>,
@@ -264,8 +264,8 @@ pub struct CV {
 impl CVBuilder {
     pub fn default(path : PathBuf, basic : BasicInfo) -> CVBuilder {
         CVBuilder {
-            path : Some(path), // 'Some' because that's how the builder is generated, let's honor that
-            basic : Some(basic),
+            path : Some(Some(path)), // outer 'Some' because that's how the builder is generated,
+            basic : Some(basic),     // let's honor that
             ..Default::default()
         }
     }
