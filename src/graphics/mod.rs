@@ -20,6 +20,7 @@ use std::str::FromStr;
 use cursive::event::Event;
 use std::io::{stdin, Read};
 use self::datepicker::{DateView, DatePicker};
+use dao::{CVManager, CVManagerFileBased};
 
 mod datepicker;
 
@@ -176,7 +177,7 @@ impl Graphics {
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
             .child(form))
             .title("New CV")
-            .button("Create new CV", |s| { println!("{:?}", Self::collect_form_data(s)); })
+            .button("Create new CV", |s| {CVManagerFileBased::add_cv(Self::collect_form_data(s).unwrap());})
         );
     }
 
@@ -198,9 +199,9 @@ impl Graphics {
     // This handler is responsible for collecting the data from the "New CV" form.
     pub fn collect_form_data(c : &mut Cursive) -> Option<CV> {
         if let Some(basic) = Self::collect_basic_info(c) {
-            let cvbldr = CVBuilder::default(PathBuf::from("/tmp"), basic).build();
-            if let Ok(t) = cvbldr {
-                return Some(t)
+            return match CVBuilder::default(basic).build() {
+                Ok(cv) => Some(cv),
+                Err(err) => { eprintln!("{}", err); None },
             }
         }
         None

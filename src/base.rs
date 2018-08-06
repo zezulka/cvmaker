@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn builder_cv_basic_ok() {
-        let cv = CVBuilder::default(PathBuf::from("/tmp/abc.txt"), basic_info_factory()).build();
+        let cv = CVBuilder::default(basic_info_factory()).build();
     }
 
     #[test]
@@ -251,6 +251,7 @@ pub struct Lang {
 
 #[derive(Default, Builder, Debug)]
 pub struct CV {
+    #[builder (default = "None")]
     pub path : Option<PathBuf>,
     pub basic : BasicInfo,
     #[builder (default = "LinkedHashSet::new()")]
@@ -261,11 +262,16 @@ pub struct CV {
     pub languages : LinkedHashSet<Lang>
 }
 
+impl CV {
+    pub fn set_path(&mut self, path : PathBuf) {
+        self.path = Some(path);
+    }
+}
+
 impl CVBuilder {
-    pub fn default(path : PathBuf, basic : BasicInfo) -> CVBuilder {
+    pub fn default(basic : BasicInfo) -> CVBuilder {
         CVBuilder {
-            path : Some(Some(path)), // outer 'Some' because that's how the builder is generated,
-            basic : Some(basic),     // let's honor that
+            basic : Some(basic),
             ..Default::default()
         }
     }
