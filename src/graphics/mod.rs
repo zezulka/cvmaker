@@ -2,7 +2,6 @@ use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use linked_hash_set::LinkedHashSet;
 use cursive::views::{IdView, Button, BoxView, Dialog, Canvas, EditView, SelectView,
                      LinearLayout, TextView, TextContent};
 use cursive::view::{ViewWrapper};
@@ -181,9 +180,8 @@ impl Graphics {
         );
     }
 
-    fn collect_contacts() -> LinkedHashSet<Contact> {
-        let mut lhs = LinkedHashSet::new();
-        lhs.insert(Contact::Website(Url::from_str("http://www.foo.bar").unwrap()));
+    fn collect_contacts() -> Vec<Contact> {
+        let mut lhs = vec![Contact::Website(Url::from_str("http://www.foo.bar").unwrap())];
         lhs
     }
 

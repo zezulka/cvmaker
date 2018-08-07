@@ -1,6 +1,7 @@
 use base::CV;
 use uuid::Uuid;
 use std::path::Path;
+use serde_json;
 
 // Basically the backend for this application. The default is reading raw files from the filesystem
 // (the "primary key" is the path to the file, in this case)
@@ -16,6 +17,7 @@ pub struct CVManagerFileBased {
 }
 
 fn save_cv(cv : & CV) -> Result<(), String> {
+    serde_json::to_string(&cv).unwrap();
     println!("{:?}", cv);
     Ok(())
 }

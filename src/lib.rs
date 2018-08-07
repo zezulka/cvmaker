@@ -6,9 +6,13 @@ extern crate derive_builder;
 extern crate fast_chemail;
 extern crate phonenumber;
 extern crate iso_country;
-extern crate linked_hash_set;
 extern crate url;
 extern crate uuid;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+extern crate serde_test;
 
 mod base;
 mod graphics;

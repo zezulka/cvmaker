@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Miloslav Žežulka <zezulka95@gmail.com>"]
 
 [dependencies]
+serde = "1.0.70"
+serde_derive = "1.0.70"
+serde_json = "1.0.24"
+serde_test = "1.0.70"
+
 cursive = "0.9.0"
 chrono = "0.4.4"
 fast_chemail = "0.9.5"
@@ -11,6 +16,5 @@ phonenumber = "0.2.1+8.9.0"
 url = "1.7.1"
 iso_country = "0.1.2"
 derive_builder = "0.5.1"
-linked_hash_set = "0.1.3"
 vfs = "0.2.0"
 uuid = { version = "0.6", features = ["serde", "v4"]}
