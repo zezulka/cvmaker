@@ -10,9 +10,21 @@ use std::fmt::{Display, Error, Formatter};
 use serde::ser::{self, Serialize, Serializer, SerializeStruct};
 use serde_test::{Token, assert_tokens, assert_de_tokens, assert_ser_tokens};
 use serde_json;
+use vfs::VPath;
+
+// Used for testing purposes only.
+pub fn basic_cv_factory() -> CV {
+    CVBuilder::default(basic_info_factory()).build().unwrap()
+}
+
+// Used for testing purposes only.
+fn basic_info_factory() -> BasicInfo {
+    let email = Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap());
+    BasicInfo::new("Peter", "Raskolnikov", NaiveDate::from_ymd(2000, 1, 1), vec![email])
+}
 
 #[cfg(test)]
-mod tests {
+pub mod test {
     use super::*;
     #[test]
     #[should_panic]
@@ -77,15 +89,6 @@ mod tests {
                     Token::SeqEnd,
             Token::StructEnd
         ]
-    }
-
-    fn basic_cv_factory() -> CV {
-        CVBuilder::default(basic_info_factory()).build().unwrap()
-    }
-
-    fn basic_info_factory() -> BasicInfo {
-        let email = Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap());
-        BasicInfo::new("Peter", "Raskolnikov", NaiveDate::from_ymd(2000, 1, 1), vec![email])
     }
 }
 
@@ -325,7 +328,7 @@ pub struct Lang {
 #[derive(Default, Builder, Debug, Serialize, PartialEq)]
 pub struct CV {
     #[builder (default = "None")]
-    pub path : Option<PathBuf>,
+    pub path : Option<String>,
     pub basic : BasicInfo,
     #[builder (default = "vec![]")]
     pub education : Vec<Education>,
@@ -336,8 +339,8 @@ pub struct CV {
 }
 
 impl CV {
-    pub fn set_path(&mut self, path : PathBuf) {
-        self.path = Some(path);
+    pub fn set_path(&mut self, path : Box<'static + VPath>) {
+        self.path = Some(path.to_string().to_string());
     }
 }
 

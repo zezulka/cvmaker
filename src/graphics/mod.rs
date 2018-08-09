@@ -20,6 +20,7 @@ use cursive::event::Event;
 use std::io::{stdin, Read};
 use self::datepicker::{DateView, DatePicker};
 use dao::{CVManager, CVManagerFileBased};
+use vfs::PhysicalFS;
 
 mod datepicker;
 
@@ -176,7 +177,13 @@ impl Graphics {
         self.engine.add_layer(Dialog::around(LinearLayout::horizontal()
             .child(form))
             .title("New CV")
-            .button("Create new CV", |s| {CVManagerFileBased::add_cv(Self::collect_form_data(s).unwrap());})
+            .button("Create new CV", |s| {
+                //TODO this is ugly as hell.
+                let mut cv = Self::collect_form_data(s).unwrap();
+                let manager = CVManagerFileBased::<PhysicalFS>::new();
+                manager.add_cv(&mut cv);
+            })
+
         );
     }
 

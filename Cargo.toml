@@ -8,7 +8,6 @@ serde = "1.0.70"
 serde_derive = "1.0.70"
 serde_json = "1.0.24"
 serde_test = "1.0.70"
-
 cursive = "0.9.0"
 chrono = "0.4.4"
 fast_chemail = "0.9.5"

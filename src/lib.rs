@@ -8,6 +8,7 @@ extern crate phonenumber;
 extern crate iso_country;
 extern crate url;
 extern crate uuid;
+extern crate vfs;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
