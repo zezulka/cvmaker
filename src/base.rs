@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::slice::Iter;
 use std::fmt::{Display, Error, Formatter};
 use serde::ser::{self, Serialize, Serializer, SerializeStruct};
+use serde::de::{Visitor, Deserialize, Deserializer, Error as SerdeError};
 use serde_test::{Token, assert_tokens, assert_de_tokens, assert_ser_tokens};
 use serde_json;
 use vfs::VPath;
@@ -74,6 +75,24 @@ pub mod test {
         }
         expected_toks.push(Token::StructEnd);
         assert_ser_tokens(&cv, &expected_toks);
+    }
+
+    //TODO
+    #[test]
+    fn ser_complex_cv() {
+
+    }
+
+    //TODO
+    #[test]
+    fn deser_simple_cv() {
+
+    }
+
+    //TODO
+    #[test]
+    fn deser_complex_cv() {
+
     }
 
     fn basic_info_vec() -> Vec<Token> {
@@ -152,6 +171,29 @@ impl Hash for Contact {
     }
 }
 
+impl<'de> Deserialize<'de> for Contact {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error> where
+        D: Deserializer<'de> {
+        struct ContactVisitor;
+
+        impl<'de> Visitor<'de> for ContactVisitor {
+            type Value = Contact;
+
+            fn expecting(&self, formatter: & mut Formatter) -> Result<(), Error> {
+                Ok(())
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Contact, E> where
+                E: SerdeError, {
+                //TODO real implementation, this is only a placeholder
+                Ok(Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap()))
+            }
+        }
+
+        deserializer.deserialize_str(ContactVisitor)
+    }
+}
+
 impl Serialize for Contact {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
         S: Serializer {
@@ -165,13 +207,41 @@ impl Serialize for Contact {
     }
 }
 
-#[derive(Clone, Default, Debug, PartialEq)]
+// Fearlessly stolen from http://play.integer32.com/?gist=aafc3231eb25328776d876199561cb37&version=stable
+mod date_serde {
+    use chrono::NaiveDate;
+    use serde::{self, Deserialize, Serializer, Deserializer};
+
+    pub fn serialize<S>(date: &Option<NaiveDate>, s: S) -> Result<S::Ok, S::Error>
+        where S: Serializer {
+        if let Some(ref d) = *date {
+            return s.serialize_str(&d.format("%Y-%m-%d").to_string())
+        }
+        s.serialize_none()
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D)
+                               -> Result<Option<NaiveDate>, D::Error>
+        where D: Deserializer<'de> {
+        let s: Option<String> = Option::deserialize(deserializer)?;
+        if let Some(s) = s {
+            return Ok(Some(NaiveDate::parse_from_str(&s, "%Y-%m-%d")
+                .map_err(serde::de::Error::custom)?))
+        }
+
+        Ok(None)
+    }
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Deserialize)]
 pub struct BasicInfo {
     pub name : String,
     pub surname : String,
     // In order to generate the builder for BasicInfo (and, transitively, for CV), we cannot
     // have the "raw" NaiveDate, because Default trait implementation is required (and, obviously,
     // there is no such date which could be considered as the default one)
+    #[serde(default)]
+    #[serde(with = "date_serde")]
     pub dob : Option<NaiveDate>,
     // One caveat : we want at least one contact present in the contacts. Tests should catch this.
     pub contacts : Vec<Contact>,
@@ -209,6 +279,32 @@ pub struct TimeSpan {
     to: NaiveDate,
 }
 
+impl<'de> Deserialize<'de> for TimeSpan {
+    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error> where
+        D: Deserializer<'de> {
+        struct TimeSpanVisitor;
+
+        impl<'de> Visitor<'de> for TimeSpanVisitor {
+            type Value = TimeSpan;
+
+            fn expecting(&self, formatter: & mut Formatter) -> Result<(), Error> {
+                Ok(())
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<TimeSpan, E> where
+                E: SerdeError, {
+                //TODO real implementation, this is only a placeholder
+                Ok(TimeSpan {
+                    from  : NaiveDate::from_ymd(2015,1,1),
+                    to : NaiveDate::from_ymd(2018,1,1)
+                })
+            }
+        }
+
+        deserializer.deserialize_str(TimeSpanVisitor)
+    }
+}
+
 impl TimeSpan {
     fn new(from : NaiveDate, to : NaiveDate) -> TimeSpan {
         if from > to {
@@ -228,7 +324,7 @@ impl Serialize for TimeSpan {
     }
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Education {
     pub span : TimeSpan,
     pub uni_name : String,
@@ -236,7 +332,7 @@ pub struct Education {
     pub field_of_study : String,
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Experience {
     pub span : TimeSpan,
     pub employer : String,
@@ -282,7 +378,7 @@ impl LanguageProficiency {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Serialize)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Serialize, Deserialize)]
 pub enum Language {
     Czech,
     Slovak,
@@ -318,14 +414,14 @@ impl Display for Language {
 }
 
 // Language would be ambiguous
-#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Lang {
     pub language : Language,
     pub proficiency : LanguageProficiency,
     pub notes : String
 }
 
-#[derive(Default, Builder, Debug, Serialize, PartialEq)]
+#[derive(Default, Builder, Debug, Serialize, Deserialize, PartialEq)]
 pub struct CV {
     #[builder (default = "None")]
     pub path : Option<String>,

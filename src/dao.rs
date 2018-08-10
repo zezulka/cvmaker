@@ -16,7 +16,7 @@ pub trait CVManager {
     fn add_cv(&self, cv : &mut CV) -> Result<(), String>;
     fn remove_cv(&self, cv : &mut CV) -> Result<(), String>;
     fn update_cv(&self, cv : &CV) -> Result<(), String>;
-    fn read_cv(&self, file_path : &str) -> CV;
+    fn read_cv(&self, file_path : &str) -> Result<CV, String>;
 }
 
 pub struct CVManagerFileBased<T : VFS> {
@@ -69,7 +69,7 @@ fn gen_id() -> String {
 impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
     fn add_cv(&self, cv: &mut CV) -> Result<(), String> {
         match cv.path {
-            Some(_) => Err("Cannot add a CV which already an ID.".to_string()),
+            Some(_) => Err("Cannot add a CV which already has an ID.".to_string()),
             None => {
                 let mut id = self.cvs_path.to_string();
                 id.push_str("/");
@@ -100,11 +100,27 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
     }
 
     fn update_cv(&self, cv: &CV) -> Result<(), String> {
-        unimplemented!()
+        match &cv.path {
+            None => Err("Cannot update a CV which has no ID.".to_string()),
+            Some(path) => self.save_cv(& cv)
+        }
     }
 
-    fn read_cv(&self, file_path: &str) -> CV {
-        unimplemented!()
+    fn read_cv(&self, file_path: &str) -> Result<CV, String> {
+        let path = self.backend.path(file_path);
+        match path.open() {
+            Err(_) => Err(format!("Couldn't open file {}", file_path)),
+            Ok(mut vfile) => {
+                let mut buff = String::new();
+                match &vfile.read_to_string(&mut buff) {
+                    Err(_) => Err(format!("Coudn't read file {}", file_path)),
+                    Ok(_) => {
+                        let cv : CV = serde_json::from_str(&buff).unwrap();
+                        Ok(cv)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -129,7 +145,7 @@ mod tests {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
         cv.set_path(Box::new(fs.path("")));
-        assert_eq!(Err("Cannot add a CV which already an ID.".to_string()),
+        assert_eq!(Err("Cannot add a CV which already has an ID.".to_string()),
                    manager.add_cv(&mut cv));
     }
 
@@ -183,4 +199,25 @@ mod tests {
         assert_eq!(Err("The path '/foobar' does not exist.".to_string()),
                    manager.remove_cv(&mut cv));
     }
+
+    #[test]
+    fn update_cv_no_id() {
+        let manager = CVDao::new_testing();
+        let mut cv = basic_cv_factory();
+        assert_eq!(Err("Cannot update a CV which has no ID.".to_string()), manager.update_cv(& cv));
+    }
+
+    #[test]
+    fn update_cv_happy_scenario() {
+        //TODO implement read_cv to test update
+    }
+
+    #[test]
+    fn read_cv_happy_scenario() {
+        let manager = CVDao::new_testing();
+        let mut cv = basic_cv_factory();
+        assert_eq!(Ok(()), manager.add_cv(&mut cv));
+        println!("{:?}", manager.read_cv(&cv.path.unwrap()))
+    }
+
 }
