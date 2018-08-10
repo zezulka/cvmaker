@@ -19,7 +19,7 @@ use std::str::FromStr;
 use cursive::event::Event;
 use std::io::{stdin, Read};
 use self::datepicker::{DateView, DatePicker};
-use dao::{CVManager, CVManagerFileBased};
+use dao::{CVManager, CVManagerFileBased, CVDao};
 use vfs::PhysicalFS;
 
 mod datepicker;
@@ -180,7 +180,7 @@ impl Graphics {
             .button("Create new CV", |s| {
                 //TODO this is ugly as hell.
                 let mut cv = Self::collect_form_data(s).unwrap();
-                let manager = CVManagerFileBased::<PhysicalFS>::new();
+                let manager = CVDao::new();
                 manager.add_cv(&mut cv);
             })
 
