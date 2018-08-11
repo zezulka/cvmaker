@@ -1,11 +1,11 @@
 use chrono::{DateTime, Local, NaiveDate, Datelike};
 use cursive::views::{LinearLayout, IdView, TextContent, TextView, SelectView};
 use cursive::view::ViewWrapper;
-use cursive::traits::{View, Boxable, Finder, Identifiable};
+use cursive::traits::{Boxable, Finder, Identifiable};
 use graphics::select_view_from_range;
 use std::ops::Range;
 
-fn date_picker<'a>(label_text : &'a str, show_days : bool) -> LinearLayout {
+fn date_picker(label_text : &str, show_days : bool) -> LinearLayout {
     let dt : DateTime<Local> = Local::now();
     let yr = dt.year()+1;
     let mut res = LinearLayout::horizontal()
@@ -27,11 +27,11 @@ pub struct DateView {
 }
 
 impl DateView {
-    pub fn new_full<'a>(id : &'a str) -> IdView<DateView> {
+    pub fn new_full(id : &str) -> IdView<DateView> {
         DateView { view : date_picker(id, true)}.with_id(id)
     }
 
-    pub fn new_without_days<'a>(id : &'a str) -> IdView<DateView> {
+    pub fn new_without_days(id : &str) -> IdView<DateView> {
         DateView { view : date_picker(id, false)}.with_id(id)
     }
 }

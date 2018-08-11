@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, Datelike};
+use chrono::NaiveDate;
 use phonenumber::PhoneNumber;
 use url::Url;
 use iso_country::Country;
@@ -6,9 +6,8 @@ use fast_chemail::is_valid_email;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
 use std::fmt::{Display, Error, Formatter};
-use serde::ser::{self, Serialize, Serializer, SerializeStruct};
+use serde::ser::{Serialize, Serializer};
 use serde::de::{Visitor, Deserialize, Deserializer, Error as SerdeError};
-use serde_test::{Token, assert_tokens, assert_de_tokens, assert_ser_tokens};
 use vfs::VPath;
 
 // Used for testing purposes only.
@@ -97,7 +96,7 @@ impl<'de> Deserialize<'de> for Contact {
             fn visit_str<E>(self, value: &str) -> Result<Contact, E> where
                 E: SerdeError, {
                 //TODO real implementation, this is only a placeholder
-                Ok(Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap()))
+                Ok(Contact::Email(EmailAddress::from(value).unwrap()))
             }
         }
 
@@ -287,6 +286,8 @@ impl CVBuilder {
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use serde_test::{Token, assert_tokens, assert_ser_tokens};
+    use chrono::Datelike;
     #[test]
     #[should_panic]
     fn timespan_invalid() {
@@ -357,10 +358,8 @@ pub mod test {
 
     #[test]
     fn serde_timespan() {
-        assert_tokens(&TimeSpan{
-                        from : NaiveDate::from_ymd(2000,1,1),
-                        to : NaiveDate::from_ymd(2001,1,1)
-                      },
+        assert_tokens(&TimeSpan::new(NaiveDate::from_ymd(2000,1,1),
+                                     NaiveDate::from_ymd(2001,1,1)),
                       &[
                           Token::Struct { name: "TimeSpan", len: 2, },
                           Token::String("from"), Token::String("2000-01-01"),

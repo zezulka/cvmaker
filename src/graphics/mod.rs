@@ -2,38 +2,20 @@ use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::views::{IdView, Button, BoxView, Dialog, Canvas, EditView, SelectView,
+use cursive::views::{Button, BoxView, Dialog, Canvas, EditView, SelectView,
                      LinearLayout, TextView, TextContent};
-use cursive::view::{ViewWrapper};
 use cursive::Cursive;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use chrono::{Local, DateTime, Datelike};
 use base::contact_types;
 use base::LanguageProficiency;
 use std::fmt::Display;
 use base::{Contact, Language, CV, CVBuilder, BasicInfo};
-use std::path::PathBuf;
-use chrono::NaiveDate;
 use url::Url;
 use std::str::FromStr;
-use cursive::event::Event;
-use std::io::{stdin, Read};
 use self::datepicker::{DateView, DatePicker};
-use dao::{CVManager, CVManagerFileBased, CVDao};
-use vfs::PhysicalFS;
+use dao::{CVManager, CVDao};
 
 mod datepicker;
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn form_basic_data() {
-        // Might need https://github.com/gyscos/Cursive/issues/271 for UI tests.
-        // Otherwise, things can get very clunky.
-    }
-}
 
 fn select_view_from_range<S : Display + 'static, T : Iterator<Item = S>>(rng : T) -> SelectView<S> {
     let mut sel_view : SelectView<S> = SelectView::new().h_align(HAlign::Center);
@@ -181,14 +163,17 @@ impl Graphics {
                 //TODO this is ugly as hell.
                 let mut cv = Self::collect_form_data(s).unwrap();
                 let manager = CVDao::new();
-                manager.add_cv(&mut cv);
+                match manager.add_cv(&mut cv) {
+                    Ok(()) => println!("CV with id {} added successfully.", cv.path.unwrap()),
+                    Err(e) => println!("{:?}", e)
+                }
             })
 
         );
     }
 
     fn collect_contacts() -> Vec<Contact> {
-        let mut lhs = vec![Contact::Website(Url::from_str("http://www.foo.bar").unwrap())];
+        let lhs = vec![Contact::Website(Url::from_str("http://www.foo.bar").unwrap())];
         lhs
     }
 
@@ -270,5 +255,16 @@ impl Graphics {
             .add_delimiter()
             .add_leaf("Quit", |s| s.quit());
         self.engine.set_autohide_menu(false);
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn form_basic_data() {
+        // Might need https://github.com/gyscos/Cursive/issues/271 for UI tests.
+        // Otherwise, things can get very clunky.
     }
 }

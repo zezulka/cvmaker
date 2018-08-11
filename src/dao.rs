@@ -1,10 +1,7 @@
 use base::CV;
 use uuid::Uuid;
-use std::path::Path;
 use serde_json;
-use std::collections::HashSet;
-use vfs::{VFile, VMetadata, VPath, VFS, PhysicalFS, MemoryFS};
-use base::basic_cv_factory;
+use vfs::{VPath, VFS, PhysicalFS, MemoryFS};
 
 pub type CVDao = CVManagerFileBased<PhysicalFS>;
 
@@ -19,7 +16,6 @@ pub trait CVManager {
 }
 
 pub struct CVManagerFileBased<T : VFS> {
-    //TODO fs-related attrs go here...
     cvs_path: String,
     backend: T,
 }
@@ -46,15 +42,19 @@ impl<T> CVManagerFileBased<T> where T : VFS {
         if let Err(err) = json_str {
             return Err(err.to_string());
         }
-        let json_str = json_str.unwrap();
         let path = self.backend.path(cv.path.as_ref().unwrap().to_string());
         if let Some(p) = path.parent() {
-            p.mkdir();
+            return match p.mkdir() {
+                Ok(_) => {
+                    if let Ok(mut vfile) = path.create() {
+                        vfile.write(json_str.unwrap().as_bytes());
+                    }
+                    Ok(())
+                },
+                Err(e) => Err(e.to_string())
+            };
         }
-        if let Ok(mut vfile) = path.create() {
-            vfile.write(json_str.as_bytes());
-        }
-        Ok(())
+        Err("Wrong path given.".to_string())
     }
 }
 
@@ -101,7 +101,7 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
     fn update_cv(&self, cv: &CV) -> Result<(), String> {
         match &cv.path {
             None => Err("Cannot update a CV which has no ID.".to_string()),
-            Some(path) => self.save_cv(& cv)
+            Some(_) => self.save_cv(& cv)
         }
     }
 
@@ -113,7 +113,7 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
                 let mut buff = String::new();
                 match &vfile.read_to_string(&mut buff) {
                     Err(_) => Err(format!("Coudn't read file {}", file_path)),
-                    Ok(cv) => {
+                    Ok(_) => {
                         match serde_json::from_str(&buff) {
                             Ok(cv) => Ok(cv),
                             Err(err) =>  Err(err.to_string()),
@@ -129,6 +129,8 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
 #[allow(unused_variables)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
+    use base::basic_cv_factory;
     type CVDao = CVManagerFileBased<MemoryFS>;
     #[test]
     fn test_id_gen_uniqueness() {
