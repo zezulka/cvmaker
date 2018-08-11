@@ -4,7 +4,6 @@ use std::path::Path;
 use serde_json;
 use std::collections::HashSet;
 use vfs::{VFile, VMetadata, VPath, VFS, PhysicalFS, MemoryFS};
-use vfs::memory::MemoryPath;
 use base::basic_cv_factory;
 
 pub type CVDao = CVManagerFileBased<PhysicalFS>;
@@ -114,9 +113,11 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
                 let mut buff = String::new();
                 match &vfile.read_to_string(&mut buff) {
                     Err(_) => Err(format!("Coudn't read file {}", file_path)),
-                    Ok(_) => {
-                        let cv : CV = serde_json::from_str(&buff).unwrap();
-                        Ok(cv)
+                    Ok(cv) => {
+                        match serde_json::from_str(&buff) {
+                            Ok(cv) => Ok(cv),
+                            Err(err) =>  Err(err.to_string()),
+                        }
                     }
                 }
             }
