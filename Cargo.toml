@@ -13,7 +13,8 @@ chrono = {version = "0.4.5", features = ["serde"]}
 fast_chemail = "0.9.5"
 phonenumber = "0.2.1+8.9.0"
 url = "1.7.1"
-iso_country = "0.1.2"
+url_serde = "0.2.0"
+isocountry = "0.2.0"
 derive_builder = "0.5.1"
 vfs = "0.2.0"
 uuid = { version = "0.6", features = ["serde", "v4"]}

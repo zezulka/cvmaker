@@ -5,8 +5,9 @@ extern crate chrono;
 extern crate derive_builder;
 extern crate fast_chemail;
 extern crate phonenumber;
-extern crate iso_country;
+extern crate isocountry;
 extern crate url;
+extern crate url_serde;
 extern crate uuid;
 extern crate vfs;
 #[macro_use]

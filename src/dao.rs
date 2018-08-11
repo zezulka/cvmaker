@@ -219,8 +219,10 @@ mod tests {
     fn read_cv_happy_scenario() {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
+        let mut cv_copy = basic_cv_factory();
         assert_eq!(Ok(()), manager.add_cv(&mut cv));
-        println!("{:?}", manager.read_cv(&cv.path.unwrap()))
+        cv_copy.path = cv.path.clone();
+        assert_eq!(Ok(cv_copy), manager.read_cv(&cv.path.unwrap()));
     }
 
 }

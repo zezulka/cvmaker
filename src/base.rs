@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use phonenumber::PhoneNumber;
 use url::Url;
-use iso_country::Country;
+use isocountry::CountryCode;
 use fast_chemail::is_valid_email;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
@@ -9,6 +9,7 @@ use std::fmt::{Display, Error, Formatter};
 use serde::ser::{Serialize, Serializer};
 use serde::de::{Visitor, Deserialize, Deserializer, Error as SerdeError};
 use vfs::VPath;
+use url_serde;
 
 // Used for testing purposes only.
 pub fn basic_cv_factory() -> CV {
@@ -24,12 +25,12 @@ fn basic_info_factory() -> BasicInfo {
 // Coming up with an address scheme is a pain in itself. Let's at least
 // define some format
 // https://en.wikipedia.org/wiki/Address_(geography)
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Address {
     pub street : String,
     pub street_subunit : u32, // this is usually number of the building the address refers to
     pub postal_code : u32,
-    pub country : Country
+    pub country : CountryCode
 }
 
 impl Hash for Address {
@@ -41,7 +42,7 @@ impl Hash for Address {
     }
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct EmailAddress {
     pub address : String
 }
@@ -55,9 +56,10 @@ impl EmailAddress {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Contact {
     Email(EmailAddress),
+    #[serde(with = "url_serde")]
     Website(Url),
     Address(Address),
     Phone(PhoneNumber),
@@ -77,42 +79,6 @@ impl Hash for Contact {
             Website(ref url) => url.hash(state),
             Address(ref addr) => addr.hash(state),
             Phone(ref num) => format!("{}", num).hash(state),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for Contact {
-    fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error> where
-        D: Deserializer<'de> {
-        struct ContactVisitor;
-
-        impl<'de> Visitor<'de> for ContactVisitor {
-            type Value = Contact;
-
-            fn expecting(&self, formatter: & mut Formatter) -> Result<(), Error> {
-                Ok(())
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Contact, E> where
-                E: SerdeError, {
-                //TODO real implementation, this is only a placeholder
-                Ok(Contact::Email(EmailAddress::from(value).unwrap()))
-            }
-        }
-
-        deserializer.deserialize_str(ContactVisitor)
-    }
-}
-
-impl Serialize for Contact {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
-        S: Serializer {
-        use self::Contact::*;
-        match self {
-            Email(addr) => serializer.serialize_newtype_variant("Contact", 1, "Email", &format!("{:?}", addr)),
-            Website(url) => serializer.serialize_newtype_variant("Contact", 2, "Website", &format!("{:?}", url)),
-            Address(addr) => serializer.serialize_newtype_variant("Contact", 3, "Address", &format!("{:?}", addr)),
-            Phone(pn) => serializer.serialize_newtype_variant("Contact", 4, "Phone", &format!("{:?}", pn)),
         }
     }
 }
@@ -377,7 +343,9 @@ pub mod test {
             Token::String("contacts"),
             Token::Seq { len : Some(1)},
             Token::NewtypeVariant { name : "Contact", variant : "Email"},
-            Token::Str("EmailAddress { address: \"peter@raskolnikov.ru\" }"),
+            Token::Struct { name: "EmailAddress", len: 1, },
+            Token::Str("address"), Token::Str("peter@raskolnikov.ru"),
+            Token::StructEnd,
             Token::SeqEnd,
             Token::StructEnd
         ]
