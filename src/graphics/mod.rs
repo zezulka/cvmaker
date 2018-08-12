@@ -15,6 +15,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use url::Url;
+use renderer::render_pdf;
 
 mod datepicker;
 
@@ -57,7 +58,7 @@ impl Graphics {
 
     // Creates a form row containing description on the left and an editable field on the right.
     // The label must be nonempty.
-    fn form_row<'a>(label_text: &'a str, col_size: usize) -> LinearLayout {
+    fn form_row(label_text: & str, col_size: usize) -> LinearLayout {
         if label_text.is_empty() {
             panic!("Got empty label text, expected nonempty.");
         }
@@ -66,7 +67,7 @@ impl Graphics {
             .child(EditView::new().fixed_width(col_size).with_id(label_text))
     }
 
-    fn form_row_default_col_size<'a>(label_text: &'a str) -> LinearLayout {
+    fn form_row_default_col_size(label_text: & str) -> LinearLayout {
         Self::form_row(label_text, 20)
     }
 
@@ -199,9 +200,10 @@ impl Graphics {
                     let mut cv = Self::collect_form_data(s).unwrap();
                     let manager = CVDao::new();
                     match manager.add_cv(&mut cv) {
-                        Ok(()) => println!("CV with id {} added successfully.", cv.path.unwrap()),
+                        Ok(()) => println!("CV with id {} added successfully.", cv.path.as_ref().unwrap()),
                         Err(e) => println!("{:?}", e),
                     }
+                    render_pdf(&cv);
                 }),
         );
     }

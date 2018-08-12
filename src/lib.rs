@@ -9,6 +9,7 @@ extern crate phonenumber;
 extern crate url;
 extern crate url_serde;
 extern crate uuid;
+extern crate pdf_canvas;
 extern crate vfs;
 #[macro_use]
 extern crate serde_derive;
@@ -19,6 +20,7 @@ extern crate serde_test;
 mod base;
 mod dao;
 mod graphics;
+mod renderer;
 use cursive::Cursive;
 use graphics::Graphics;
 use std::error::Error;
