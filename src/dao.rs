@@ -1,7 +1,7 @@
 use base::CV;
-use uuid::Uuid;
 use serde_json;
-use vfs::{VPath, VFS, PhysicalFS, MemoryFS};
+use uuid::Uuid;
+use vfs::{MemoryFS, PhysicalFS, VPath, VFS};
 
 pub type CVDao = CVManagerFileBased<PhysicalFS>;
 
@@ -9,32 +9,41 @@ pub type CVDao = CVManagerFileBased<PhysicalFS>;
 // (the "primary key" is the path to the file, in this case)
 // Fs-backed backend in not performance-scalable, of course, but that's not what we want anyway.
 pub trait CVManager {
-    fn add_cv(&self, cv : &mut CV) -> Result<(), String>;
-    fn remove_cv(&self, cv : &mut CV) -> Result<(), String>;
-    fn update_cv(&self, cv : &CV) -> Result<(), String>;
-    fn read_cv(&self, file_path : &str) -> Result<CV, String>;
+    fn add_cv(&self, cv: &mut CV) -> Result<(), String>;
+    fn remove_cv(&self, cv: &mut CV) -> Result<(), String>;
+    fn update_cv(&self, cv: &CV) -> Result<(), String>;
+    fn read_cv(&self, file_path: &str) -> Result<CV, String>;
 }
 
-pub struct CVManagerFileBased<T : VFS> {
+pub struct CVManagerFileBased<T: VFS> {
     cvs_path: String,
     backend: T,
 }
 
-impl<T> CVManagerFileBased<T> where T : VFS {
+impl<T> CVManagerFileBased<T>
+where
+    T: VFS,
+{
     //TODO tmpfs is not a very good storage for permanent data :)
     // for testing the program out, this should be enough though
     pub fn new() -> CVManagerFileBased<PhysicalFS> {
-        CVManagerFileBased { cvs_path : "/tmp".to_string(), backend : PhysicalFS{} }
+        CVManagerFileBased {
+            cvs_path: "/tmp".to_string(),
+            backend: PhysicalFS {},
+        }
     }
 
     fn new_testing() -> CVManagerFileBased<MemoryFS> {
-        CVManagerFileBased { cvs_path : "".to_string(), backend : MemoryFS::new() }
+        CVManagerFileBased {
+            cvs_path: "".to_string(),
+            backend: MemoryFS::new(),
+        }
     }
 
     // Saves a cv as a JSON to a file.
     // Panics:
     //      when there is no id set in the cv attribute.
-    fn save_cv(&self, cv : & CV) -> Result<(), String> {
+    fn save_cv(&self, cv: &CV) -> Result<(), String> {
         if cv.path.is_none() {
             panic!("CV must have a valid ID to be saved.");
         }
@@ -50,8 +59,8 @@ impl<T> CVManagerFileBased<T> where T : VFS {
                         vfile.write(json_str.unwrap().as_bytes());
                     }
                     Ok(())
-                },
-                Err(e) => Err(e.to_string())
+                }
+                Err(e) => Err(e.to_string()),
             };
         }
         Err("Wrong path given.".to_string())
@@ -65,7 +74,11 @@ fn gen_id() -> String {
 
 // TODO: deal with duplicates (which are VERY rare to occur, but possible nevertheless!)
 // TODO: only UNIX path separators
-impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
+impl<T> CVManager for CVManagerFileBased<T>
+where
+    T: VFS,
+    T::PATH: 'static,
+{
     fn add_cv(&self, cv: &mut CV) -> Result<(), String> {
         match cv.path {
             Some(_) => Err("Cannot add a CV which already has an ID.".to_string()),
@@ -76,7 +89,7 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
                 id.push_str(".json");
                 let id = self.backend.path(id);
                 cv.set_path(Box::new(id));
-                self.save_cv(& cv)
+                self.save_cv(&cv)
             }
         }
     }
@@ -92,7 +105,7 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
                 }
                 match path.rm() {
                     Err(_) => Err(format!("Could not remove the file: '{}'", path_str)),
-                    Ok(_) => Ok(())
+                    Ok(_) => Ok(()),
                 }
             }
         }
@@ -101,7 +114,7 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
     fn update_cv(&self, cv: &CV) -> Result<(), String> {
         match &cv.path {
             None => Err("Cannot update a CV which has no ID.".to_string()),
-            Some(_) => self.save_cv(& cv)
+            Some(_) => self.save_cv(&cv),
         }
     }
 
@@ -113,12 +126,10 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
                 let mut buff = String::new();
                 match &vfile.read_to_string(&mut buff) {
                     Err(_) => Err(format!("Coudn't read file {}", file_path)),
-                    Ok(_) => {
-                        match serde_json::from_str(&buff) {
-                            Ok(cv) => Ok(cv),
-                            Err(err) =>  Err(err.to_string()),
-                        }
-                    }
+                    Ok(_) => match serde_json::from_str(&buff) {
+                        Ok(cv) => Ok(cv),
+                        Err(err) => Err(err.to_string()),
+                    },
                 }
             }
         }
@@ -129,13 +140,13 @@ impl<T> CVManager for CVManagerFileBased<T> where T : VFS, T::PATH: 'static {
 #[allow(unused_variables)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
     use base::basic_cv_factory;
+    use std::collections::HashSet;
     type CVDao = CVManagerFileBased<MemoryFS>;
     #[test]
     fn test_id_gen_uniqueness() {
         let iterations = 1000;
-        let mut ids : HashSet<String> = HashSet::new();
+        let mut ids: HashSet<String> = HashSet::new();
         for _ in 0..iterations {
             ids.insert(gen_id());
         }
@@ -148,8 +159,10 @@ mod tests {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
         cv.set_path(Box::new(fs.path("")));
-        assert_eq!(Err("Cannot add a CV which already has an ID.".to_string()),
-                   manager.add_cv(&mut cv));
+        assert_eq!(
+            Err("Cannot add a CV which already has an ID.".to_string()),
+            manager.add_cv(&mut cv)
+        );
     }
 
     #[test]
@@ -161,7 +174,7 @@ mod tests {
         assert!(cv.path.is_some());
     }
 
-    fn count_num_files(mgr : & CVDao) -> usize {
+    fn count_num_files(mgr: &CVDao) -> usize {
         mgr.backend.path("/").read_dir().unwrap().count()
     }
 
@@ -190,8 +203,10 @@ mod tests {
     fn remove_cv_no_id() {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
-        assert_eq!(Err("Cannot remove a CV which has no ID.".to_string()),
-                   manager.remove_cv(&mut cv));
+        assert_eq!(
+            Err("Cannot remove a CV which has no ID.".to_string()),
+            manager.remove_cv(&mut cv)
+        );
     }
 
     #[test]
@@ -199,15 +214,20 @@ mod tests {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
         cv.set_path(Box::new(manager.backend.path("/foobar")));
-        assert_eq!(Err("The path '/foobar' does not exist.".to_string()),
-                   manager.remove_cv(&mut cv));
+        assert_eq!(
+            Err("The path '/foobar' does not exist.".to_string()),
+            manager.remove_cv(&mut cv)
+        );
     }
 
     #[test]
     fn update_cv_no_id() {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
-        assert_eq!(Err("Cannot update a CV which has no ID.".to_string()), manager.update_cv(& cv));
+        assert_eq!(
+            Err("Cannot update a CV which has no ID.".to_string()),
+            manager.update_cv(&cv)
+        );
     }
 
     #[test]

@@ -4,8 +4,8 @@ extern crate chrono;
 #[macro_use]
 extern crate derive_builder;
 extern crate fast_chemail;
-extern crate phonenumber;
 extern crate isocountry;
+extern crate phonenumber;
 extern crate url;
 extern crate url_serde;
 extern crate uuid;
@@ -17,11 +17,11 @@ extern crate serde_json;
 extern crate serde_test;
 
 mod base;
-mod graphics;
 mod dao;
-use std::error::Error;
-use graphics::Graphics;
+mod graphics;
 use cursive::Cursive;
+use graphics::Graphics;
+use std::error::Error;
 
 pub fn run() -> Result<(), Box<Error>> {
     Graphics::new(Cursive::default()).run();
