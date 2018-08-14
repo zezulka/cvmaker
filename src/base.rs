@@ -2,9 +2,8 @@ use chrono::NaiveDate;
 use fast_chemail::is_valid_email;
 use isocountry::CountryCode;
 use phonenumber::PhoneNumber;
-use serde::de::{Deserialize, Deserializer, Error as SerdeError, Visitor};
-use serde::ser::{Serialize, Serializer};
-use std::fmt::{Display, Error, Formatter};
+use serde::de::{Deserializer, Error as SerdeError, Visitor};
+use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
 use url::Url;
@@ -63,13 +62,32 @@ impl EmailAddress {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Contact {
     Email(EmailAddress),
     #[serde(with = "url_serde")]
     Website(Url),
     Address(Address),
     Phone(PhoneNumber),
+}
+
+//TODO
+impl Debug for Contact {
+    fn fmt(&self, f: & mut Formatter) -> Result<(), Error> {
+        use self::Contact::*;
+        match self {
+            Email(ref addr) => write!(f, "{}", addr.address),
+            Website(ref url) => write!(f, "{}", url),
+            Address(ref addr) => write!(f, "{:?}", addr),
+            Phone(ref num) => write!(f, "{}", num),
+        }
+    }
+}
+
+impl Display for Contact {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{:?}", self)
+    }
 }
 
 // Return all the possible types available for contacts as tuples (enum, str).

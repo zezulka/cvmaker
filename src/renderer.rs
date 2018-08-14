@@ -1,8 +1,9 @@
 // Responsibility: the program will create a PDF file based on the data given by the user.
 use base::CV;
-use pdf_canvas::{Canvas, FontRef, FontSource, TextObject, BuiltinFont, Pdf};
+use pdf_canvas::{Canvas, FontRef, TextObject, BuiltinFont, Pdf};
 use pdf_canvas::graphicsstate::Color;
 use std::io::Result as IoRes;
+use base::BasicInfo;
 
 struct Point {
     x : f32,
@@ -29,21 +30,21 @@ fn wrap_line(t : &mut TextObject, width : usize, text : &str) -> IoRes<()> {
     let mut curr = 0;
     let len = text.len();
     let mut cap = width;
-    if(len < width) {
+    if len < width {
         t.show(text)?;
         return Ok(());
     }
-    while(cap <= len) {
+    while cap <= len {
         match text[..cap].rfind(' ') {
-            None => { t.show_line(&text[curr..]); break; },
-            Some(nextcurr) => {
-                t.show_line(&text[curr..nextcurr]);
-                curr = nextcurr + 1;
+            None => { t.show_line(&text[curr..])?; break; },
+            Some(next_curr) => {
+                t.show_line(&text[curr..next_curr])?;
+                curr = next_curr + 1;
                 cap = curr + width;
             }
         }
     }
-    t.show_line(&text[curr..]);
+    t.show_line(&text[curr..])?;
     Ok(())
 }
 
@@ -62,21 +63,39 @@ fn black_rectangle_white_text(c : &mut Canvas, text : &str, fref : &FontRef, fsi
     })
 }
 
+fn render_basic_info(c : &mut Canvas, Resolution {width, height} : &Resolution, fref : BuiltinFont, fref_bold : BuiltinFont, fsize : f32,
+                     BasicInfo {name, surname, dob, contacts} : &BasicInfo) -> IoRes<()> {
+    c.set_stroke_color(Color::rgb(0,0,0))?;
+    let name_surname = name.to_string() + " " + surname;
+    c.center_text(*width * 0.25, *height - 60.0, fref_bold, fsize * 2.0, &name_surname)?;
+    c.line(*width * 0.25, *height - 90.0, *width, *height - 90.0);
+    c.stroke()?;
+    let mut offset = *height - 150.0;
+    contacts.iter().for_each(|contact| {
+        c.right_text(*width * 0.75, offset, fref_bold, fsize, &format!("{}\t{:?}", contact, contact));
+        offset -= 30.0;
+    });
+    Ok(())
+}
+
 //TODO : linewrapper, maybe add more structs which would improve the library composition a bit better.
 pub fn render_pdf(cv : &CV) -> Result<(), String> {
-    let Resolution {width, height} = Resolution::new_a4(1000.0);
+    let res = Resolution::new_a4(1000.0);
+    let Resolution {width, height} = res;
+
     let mut document = Pdf::create("/tmp/text.pdf").unwrap();
     let lorem_ipsum = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.";
     document.set_title("Foo bar");
     document.render_page(width, height, |c| {
-            let font = c.get_font(BuiltinFont::Times_Roman);
+            let font = BuiltinFont::Times_Roman;
+            let font_ref = c.get_font(font);
+            render_basic_info(c, &res, font, BuiltinFont::Times_Bold, 14.0, &cv.basic)?;
             c.text(|t| {
-                t.set_font(&font, 14.0)?;
+                t.set_font(&font_ref, 14.0)?;
                 t.set_leading(18.0)?;
                 t.pos(10.0, 300.0)?;
                 wrap_line(t, 50, lorem_ipsum)
-            })?;
-            black_rectangle_white_text(c, "EXPERIENCE", &font, 18.0, Point { x : 0.0, y : 0.0})
+            })
     }).unwrap();
     document.finish().unwrap();
     Ok(())
