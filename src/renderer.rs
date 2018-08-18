@@ -3,7 +3,7 @@ use base::CV;
 use pdf_canvas::{Canvas, FontRef, TextObject, BuiltinFont, Pdf};
 use pdf_canvas::graphicsstate::Color;
 use std::io::Result as IoRes;
-use base::BasicInfo;
+use base::{Education, Lang, Experience, BasicInfo};
 
 struct Point {
     x : f32,
@@ -72,9 +72,21 @@ fn render_basic_info(c : &mut Canvas, Resolution {width, height} : &Resolution, 
     c.stroke()?;
     let mut offset = *height - 150.0;
     contacts.iter().for_each(|contact| {
-        c.right_text(*width * 0.75, offset, fref_bold, fsize, &format!("{}\t{:?}", contact, contact));
+        c.right_text(*width * 0.75, offset, fref_bold, fsize, &format!("{:#}", contact));
         offset -= 30.0;
     });
+    Ok(())
+}
+
+fn render_experience(cv : &mut Canvas, data : &Vec<Experience>) -> IoRes<()> {
+    Ok(())
+}
+
+fn render_education(cv : &mut Canvas, data : &Vec<Education>) -> IoRes<()> {
+    Ok(())
+}
+
+fn render_languages(cv : &mut Canvas, data : &Vec<Lang>) -> IoRes<()> {
     Ok(())
 }
 
@@ -90,6 +102,9 @@ pub fn render_pdf(cv : &CV) -> Result<(), String> {
             let font = BuiltinFont::Times_Roman;
             let font_ref = c.get_font(font);
             render_basic_info(c, &res, font, BuiltinFont::Times_Bold, 14.0, &cv.basic)?;
+            render_experience(c, &cv.experience)?;
+            render_education(c, &cv.education)?;
+            render_languages(c, &cv.languages)?;
             c.text(|t| {
                 t.set_font(&font_ref, 14.0)?;
                 t.set_leading(18.0)?;

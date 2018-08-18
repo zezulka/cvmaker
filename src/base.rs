@@ -86,7 +86,13 @@ impl Debug for Contact {
 
 impl Display for Contact {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{:?}", self)
+        use self::Contact::*;
+        match self {
+            Email(ref addr) => write!(f, "E-mail : {}", addr.address),
+            Website(ref url) => write!(f, "Website : {}", url),
+            Address(ref addr) => write!(f, "Address : {:?}", addr),
+            Phone(ref num) => write!(f, "Phone : {}", num)
+        }
     }
 }
 
