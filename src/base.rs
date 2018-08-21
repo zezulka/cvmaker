@@ -73,7 +73,7 @@ pub enum Contact {
 
 //TODO
 impl Debug for Contact {
-    fn fmt(&self, f: & mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         use self::Contact::*;
         match self {
             Email(ref addr) => write!(f, "{}", addr.address),
@@ -91,7 +91,7 @@ impl Display for Contact {
             Email(ref addr) => write!(f, "E-mail : {}", addr.address),
             Website(ref url) => write!(f, "Website : {}", url),
             Address(ref addr) => write!(f, "Address : {:?}", addr),
-            Phone(ref num) => write!(f, "Phone : {}", num)
+            Phone(ref num) => write!(f, "Phone : {}", num),
         }
     }
 }

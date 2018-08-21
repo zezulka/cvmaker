@@ -6,11 +6,11 @@ extern crate chrono;
 extern crate derive_builder;
 extern crate fast_chemail;
 extern crate isocountry;
+extern crate pdf_canvas;
 extern crate phonenumber;
 extern crate url;
 extern crate url_serde;
 extern crate uuid;
-extern crate pdf_canvas;
 extern crate vfs;
 #[macro_use]
 extern crate serde_derive;

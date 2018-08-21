@@ -3,25 +3,27 @@
 use self::datepicker::{DatePicker, DateView};
 use base::contact_types;
 use base::LanguageProficiency;
-use phonenumber::PhoneNumber;
-use base::{BasicInfo, CVBuilder, EmailAddress, Contact, Language, CV};
+use base::{
+    BasicInfo, CVBuilder, Contact, Education, EmailAddress, Experience, Lang, Language, CV,
+};
 use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::views::{
-    BoxView, Button, Canvas, Dialog, EditView, LinearLayout,
-    SelectView, TextContent, TextView, IdView
-};
 use cursive::view::{Selector, ViewWrapper};
+use cursive::views::{
+    BoxView, Button, Canvas, Dialog, EditView, IdView, LinearLayout, SelectView, TextContent,
+    TextView,
+};
 use cursive::Cursive;
 use dao::{CVDao, CVManager};
+use phonenumber::PhoneNumber;
+use renderer::render_pdf;
+use std::any::TypeId;
 use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use url::Url;
-use renderer::render_pdf;
-use std::any::TypeId;
 
 mod datepicker;
 
@@ -31,7 +33,10 @@ fn select_view_from_range<S: Display + 'static, T: Iterator<Item = S>>(rng: T) -
     sel_view.popup()
 }
 
-static CONTACT_CHILD_ID : &'static str  = "contact_child";
+static CONTACT_CHILD_ID: &'static str = "contact_child";
+static EXP_ID: &'static str = "experience";
+static LANGS_ID: &'static str = "languages";
+static EDU_ID: &'static str = "education";
 
 pub struct Graphics {
     engine: Cursive,
@@ -66,17 +71,16 @@ impl Graphics {
 
     // Creates a form row containing description on the left and an editable field on the right.
     // The label must be nonempty.
-    fn form_row(label_text: & str, col_size: usize) -> LinearLayout {
+    fn form_row(label_text: &str, col_size: usize) -> LinearLayout {
         if label_text.is_empty() {
             panic!("Got empty label text, expected nonempty.");
         }
         LinearLayout::horizontal()
             .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(col_size))
-            .child(EditView::new().fixed_width(col_size)
-                .with_id(label_text))
+            .child(EditView::new().fixed_width(col_size).with_id(label_text))
     }
 
-    fn form_row_default_col_size(label_text: & str) -> LinearLayout {
+    fn form_row_default_col_size(label_text: &str) -> LinearLayout {
         Self::form_row(label_text, 20)
     }
 
@@ -94,13 +98,13 @@ impl Graphics {
                 LinearLayout::horizontal()
                     .child(Self::contact_select_view())
                     .child(EditView::new().fixed_width(20))
-                .with_id(CONTACT_CHILD_ID),
+                    .with_id(CONTACT_CHILD_ID),
             )
         });
     }
 
     fn experience_row(s: &mut Cursive) {
-        s.call_on_id("Experience", |view: &mut LinearLayout| {
+        s.call_on_id(EXP_ID, |view: &mut LinearLayout| {
             view.add_child(
                 LinearLayout::vertical()
                     .child(DateView::new_without_days("From"))
@@ -164,8 +168,9 @@ impl Graphics {
                         LinearLayout::horizontal()
                             .child(Self::contact_select_view())
                             .child(EditView::new().fixed_width(20))
-                        .with_id(CONTACT_CHILD_ID))
-                .with_id("Contacts")
+                            .with_id(CONTACT_CHILD_ID),
+                    )
+                    .with_id("Contacts"),
             )
             .child(LinearLayout::horizontal().child(Button::new("Add another", event_fun)))
     }
@@ -190,13 +195,13 @@ impl Graphics {
             .child(DateView::new_full("Date of birth"))
             .child(Self::expandable_linear_layout_contacts(&Self::contact_row))
             .child(Self::expandable_linear_layout(
-                "Languages", &Self::language_row,
+                LANGS_ID,
+                &Self::language_row,
             ))
+            .child(Self::expandable_linear_layout(EDU_ID, &Self::education_row))
             .child(Self::expandable_linear_layout(
-                "Education", &Self::education_row,
-            ))
-            .child(Self::expandable_linear_layout(
-                "Experience", &Self::experience_row,
+                EXP_ID,
+                &Self::experience_row,
             ))
             .scrollable();
         self.engine.add_layer(
@@ -207,8 +212,10 @@ impl Graphics {
                     let mut cv = Self::collect_form_data(s).unwrap();
                     let manager = CVDao::new();
                     match manager.add_cv(&mut cv) {
-                        Ok(()) => println!("CV with id {} added successfully.",
-                                           cv.path.as_ref().unwrap()),
+                        Ok(()) => println!(
+                            "CV with id {} added successfully.",
+                            cv.path.as_ref().unwrap()
+                        ),
                         Err(e) => println!("{:?}", e),
                     }
                     render_pdf(&cv);
@@ -218,43 +225,60 @@ impl Graphics {
 
     fn collect_contacts(c: &mut Cursive) -> Vec<Contact> {
         let mut res = vec![Contact::Website(
-            Url::from_str("http://www.foo.bar").unwrap())];
+            Url::from_str("http://www.foo.bar").unwrap(),
+        )];
         let mut contacts_root = c.find_id::<LinearLayout>("Contacts").unwrap();
-        contacts_root.call_on_any(&Selector::Id(CONTACT_CHILD_ID),
-                                  Box::new(|s| {
-                                      if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
-                                          let mut lin_lay = id_view.get_mut();
-                                          let data = lin_lay.get_child_mut(1)
-                                              .unwrap()
-                                              .as_any_mut()
-                                              .downcast_mut::<BoxView<EditView>>()
-                                              .unwrap()
-                                              .get_inner_mut()
-                                              .get_content();
-                                          match &lin_lay.get_child_mut(0).unwrap()
-                                              .as_any_mut()
-                                              .downcast_mut::<SelectView>().unwrap()
-                                              .selection().unwrap()[..] {
-                                              "email" => {
-                                                  res.push(Contact::Email(
-                                                      EmailAddress { address : data.to_string() }
-                                                  ));
-                                              },
-                                              "website" => {
-                                                  res.push(Contact::Website(
-                                                      Url::from_str(&data).unwrap()
-                                                  ));
-                                              },
-                                              "phone" => {
-                                                  res.push(Contact::Phone(
-                                                      PhoneNumber::from_str(&data).unwrap()
-                                                  ));
-                                              },
-                                              _ => panic!("Unexpected selection.")
-                                          }
-                                      }
-                                  }));
+        contacts_root.call_on_any(
+            &Selector::Id(CONTACT_CHILD_ID),
+            Box::new(|s| {
+                if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
+                    let mut lin_lay = id_view.get_mut();
+                    let data = lin_lay
+                        .get_child_mut(1)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<BoxView<EditView>>()
+                        .unwrap()
+                        .get_inner_mut()
+                        .get_content();
+                    match &lin_lay
+                        .get_child_mut(0)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<SelectView>()
+                        .unwrap()
+                        .selection()
+                        .unwrap()[..]
+                    {
+                        "email" => {
+                            res.push(Contact::Email(EmailAddress {
+                                address: data.to_string(),
+                            }));
+                        }
+                        "website" => {
+                            res.push(Contact::Website(Url::from_str(&data).unwrap()));
+                        }
+                        "phone" => {
+                            res.push(Contact::Phone(PhoneNumber::from_str(&data).unwrap()));
+                        }
+                        _ => panic!("Unexpected selection."),
+                    }
+                }
+            }),
+        );
         res
+    }
+
+    fn collect_experience() -> Vec<Experience> {
+        vec![]
+    }
+
+    fn collect_education() -> Vec<Education> {
+        vec![]
+    }
+
+    fn collect_languages() -> Vec<Lang> {
+        vec![]
     }
 
     fn collect_basic_info(c: &mut Cursive) -> Option<BasicInfo> {
@@ -281,7 +305,12 @@ impl Graphics {
     // This handler is responsible for collecting the data from the "New CV" form.
     pub fn collect_form_data(c: &mut Cursive) -> Option<CV> {
         if let Some(basic) = Self::collect_basic_info(c) {
-            return match CVBuilder::default(basic).build() {
+            return match CVBuilder::default(basic)
+                .experience(Self::collect_experience())
+                .education(Self::collect_education())
+                .languages(Self::collect_languages())
+                .build()
+            {
                 Ok(cv) => Some(cv),
                 Err(err) => {
                     eprintln!("{}", err);
