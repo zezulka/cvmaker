@@ -31,10 +31,14 @@ fn select_view_from_range<S: Display + 'static, T: Iterator<Item = S>>(rng: T) -
     sel_view.popup()
 }
 
+static CONTACTS_ID: &'static str = "contacts";
 static CONTACT_CHILD_ID: &'static str = "contact_child";
 static EXP_ID: &'static str = "experience";
+static EXP_CHILD_ID: &'static str = "experience_child";
 static LANGS_ID: &'static str = "languages";
+static LANG_CHILD_ID: &'static str = "language_child";
 static EDU_ID: &'static str = "education";
+static EDU_CHILD_ID: &'static str = "education_child";
 
 pub struct Graphics {
     engine: Cursive,
@@ -91,7 +95,7 @@ impl Graphics {
     }
 
     fn contact_row(s: &mut Cursive) {
-        s.call_on_id("Contacts", |view: &mut LinearLayout| {
+        s.call_on_id(CONTACTS_ID, |view: &mut LinearLayout| {
             view.add_child(
                 LinearLayout::horizontal()
                     .child(Self::contact_select_view())
@@ -109,14 +113,15 @@ impl Graphics {
                     .child(DateView::new_without_days("To"))
                     .child(Self::form_row_default_col_size("Employer"))
                     .child(Self::form_row_default_col_size("Job name"))
-                    .child(Self::form_row_default_col_size("Description")),
+                    .child(Self::form_row_default_col_size("Description"))
+                    .with_id(EXP_CHILD_ID),
             )
         });
     }
 
     //TODO : if user enters the "Other" option, let him fill in the "other" language
     fn language_row(s: &mut Cursive) {
-        s.call_on_id("Languages", |view: &mut LinearLayout| {
+        s.call_on_id(LANGS_ID, |view: &mut LinearLayout| {
             view.add_child(
                 LinearLayout::vertical()
                     .child(
@@ -135,20 +140,22 @@ impl Graphics {
                             )
                             .child(select_view_from_range(LanguageProficiency::iterator())),
                     )
-                    .child(Self::form_row_default_col_size("Additional notes")),
+                    .child(Self::form_row_default_col_size("Additional notes"))
+                    .with_id(LANG_CHILD_ID),
             )
         });
     }
 
     fn education_row(s: &mut Cursive) {
-        s.call_on_id("Education", |view: &mut LinearLayout| {
+        s.call_on_id(EDU_ID, |view: &mut LinearLayout| {
             view.add_child(
                 LinearLayout::vertical()
                     .child(DateView::new_without_days("From"))
                     .child(DateView::new_without_days("To"))
                     .child(Self::form_row_default_col_size("University"))
                     .child(Self::form_row_default_col_size("Degree"))
-                    .child(Self::form_row_default_col_size("Field of study")),
+                    .child(Self::form_row_default_col_size("Field of study"))
+                    .with_id(EDU_CHILD_ID),
             )
         });
     }
@@ -168,9 +175,17 @@ impl Graphics {
                             .child(EditView::new().fixed_width(20))
                             .with_id(CONTACT_CHILD_ID),
                     )
-                    .with_id("Contacts"),
+                    .with_id(CONTACTS_ID),
             )
             .child(LinearLayout::horizontal().child(Button::new("Add another", event_fun)))
+    }
+
+    fn first_uppercase(s: &str) -> String {
+        let mut c = s.chars();
+        match c.next() {
+            None => String::new(),
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        }
     }
 
     fn expandable_linear_layout<'a>(
@@ -179,8 +194,10 @@ impl Graphics {
     ) -> LinearLayout {
         LinearLayout::vertical()
             .child(
-                LinearLayout::horizontal()
-                    .child(TextView::new_with_content(TextContent::new(label)).fixed_width(20)),
+                LinearLayout::horizontal().child(
+                    TextView::new_with_content(TextContent::new(Self::first_uppercase(label)))
+                        .fixed_width(20),
+                ),
             )
             .child(LinearLayout::vertical().with_id(label))
             .child(LinearLayout::horizontal().child(Button::new("Add another", event_fun)))
@@ -222,10 +239,8 @@ impl Graphics {
     }
 
     fn collect_contacts(c: &mut Cursive) -> Vec<Contact> {
-        let mut res = vec![Contact::Website(
-            Url::from_str("http://www.foo.bar").unwrap(),
-        )];
-        let mut contacts_root = c.find_id::<LinearLayout>("Contacts").unwrap();
+        let mut res = vec![];
+        let mut contacts_root = c.find_id::<LinearLayout>(CONTACTS_ID).unwrap();
         contacts_root.call_on_any(
             &Selector::Id(CONTACT_CHILD_ID),
             Box::new(|s| {
@@ -267,16 +282,21 @@ impl Graphics {
         res
     }
 
-    fn collect_experience() -> Vec<Experience> {
-        vec![]
+    fn collect_experience(c: &mut Cursive) -> Vec<Experience> {
+        let mut res = vec![];
+        let mut experience_root = c.find_id::<LinearLayout>(EXP_ID).unwrap();
+        //experience_root.call_on_any()
+        res
     }
 
-    fn collect_education() -> Vec<Education> {
-        vec![]
+    fn collect_education(c: &mut Cursive) -> Vec<Education> {
+        let mut res = vec![];
+        res
     }
 
-    fn collect_languages() -> Vec<Lang> {
-        vec![]
+    fn collect_languages(c: &mut Cursive) -> Vec<Lang> {
+        let mut res = vec![];
+        res
     }
 
     fn collect_basic_info(c: &mut Cursive) -> Option<BasicInfo> {
@@ -304,9 +324,9 @@ impl Graphics {
     pub fn collect_form_data(c: &mut Cursive) -> Option<CV> {
         if let Some(basic) = Self::collect_basic_info(c) {
             return match CVBuilder::default(basic)
-                .experience(Self::collect_experience())
-                .education(Self::collect_education())
-                .languages(Self::collect_languages())
+                .experience(Self::collect_experience(c))
+                .education(Self::collect_education(c))
+                .languages(Self::collect_languages(c))
                 .build()
             {
                 Ok(cv) => Some(cv),
