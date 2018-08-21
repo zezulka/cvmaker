@@ -4,6 +4,7 @@ use pdf_canvas::{Canvas, FontRef, TextObject, BuiltinFont, Pdf};
 use pdf_canvas::graphicsstate::Color;
 use std::io::Result as IoRes;
 use base::{Education, Lang, Experience, BasicInfo};
+use std::fmt::Debug;
 
 struct Point {
     x : f32,
@@ -71,17 +72,19 @@ fn wrap_line(t : &mut TextObject, width : usize, text : &str) -> IoRes<()> {
     Ok(())
 }
 
-fn black_rectangle_white_text(c : &mut Canvas, text : &str, fref : &FontRef, fsize : f32, Point{ x, y } : Point) -> IoRes<()> {
-    let w = fref.get_width(fsize, text);
+fn black_rectangle_white_text(c : &mut Canvas, text : &str, font: &Font, Point{ x, y } : Point) -> IoRes<()> {
+    let fref = c.get_font(font.font_bold);
+    let w = fref.get_width(font.fsize, text);
     c.set_stroke_color(Color::rgb(0, 0, 0))?;
     c.set_fill_color(Color::rgb(0,0,0))?;
     c.rectangle(x, y, w, 26.0)?;
     c.fill()?;
     c.stroke()?;
     c.text(|t| {
-        t.set_font(fref, fsize)?;
+        t.set_font(&fref, font.fsize)?;
         t.set_fill_color(Color::rgb(0xFF, 0xFF, 0xFF))?;
-        t.pos(x, y + 23.0)?;
+        //TODO: the "random" offset that goes with the y position can make trouble
+        t.pos(x, y + 10.0)?;
         t.show_line(text)
     })
 }
@@ -101,18 +104,30 @@ fn render_basic_info(c : &mut Canvas, Resolution {width, height} : &Resolution, 
     Ok(())
 }
 
+fn render_data_vector<D : Debug>(c : &mut Canvas, Point {x, y} : Point, font : &Font, vec : &Vec<D>) {
+    c.set_stroke_color(Color::rgb(0,0,0));
+    let mut offset = y;
+    vec.iter().for_each(|data| {
+        c.right_text(x, y, font.font, font.fsize, &format!("{:?}", data));
+        offset += 20.0;
+    });
+}
+
 fn render_experience(c : &mut Canvas, data : &Vec<Experience>, font : &Font) -> IoRes<()> {
-    //black_rectangle_white_text(c, "Experience", );
+    black_rectangle_white_text(c, "Experience", font, Point{ x : 20.0, y : 1200.0})?;
+    render_data_vector(c, Point { x : 170.0, y : 1200.0 }, font, data);
     Ok(())
 }
 
-fn render_education(cv : &mut Canvas, data : &Vec<Education>, font : &Font) -> IoRes<()> {
-    //black_rectangle_white_text(c);
+fn render_education(c : &mut Canvas, data : &Vec<Education>, font : &Font) -> IoRes<()> {
+    black_rectangle_white_text(c, "Education", font, Point{ x : 20.0, y : 1000.0})?;
+    render_data_vector(c, Point { x : 170.0, y : 1000.0 }, font, data);
     Ok(())
 }
 
-fn render_languages(cv : &mut Canvas, data : &Vec<Lang>, font : &Font) -> IoRes<()> {
-    //black_rectangle_white_text(c);
+fn render_languages(c : &mut Canvas, data : &Vec<Lang>, font : &Font) -> IoRes<()> {
+    black_rectangle_white_text(c, "Languages", font, Point{ x : 20.0, y : 800.0})?;
+    render_data_vector(c, Point { x : 170.0, y : 800.0 }, font, data);
     Ok(())
 }
 
@@ -129,7 +144,7 @@ pub fn render_pdf(cv : &CV) -> Result<(), String> {
     document.render_page(width, height, |c| {
             //let font_ref = c.get_font(font);
             render_basic_info(c, &res, &font, &cv.basic)?;
-            //render_experience(c, &cv.experience)?;
+            render_experience(c, &cv.experience, &font)?;
             render_education(c, &cv.education, &font)?;
             render_languages(c, &cv.languages, &font)?;
             c.text(|t| {
