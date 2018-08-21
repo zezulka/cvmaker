@@ -1,4 +1,3 @@
-#![feature(get_type_id)]
 #[macro_use]
 extern crate cursive;
 extern crate chrono;

@@ -1,5 +1,3 @@
-#![feature(get_type_id)]
-
 use self::datepicker::{DatePicker, DateView};
 use base::contact_types;
 use base::LanguageProficiency;
