@@ -11,7 +11,7 @@ use cursive::traits::*;
 use cursive::view::{Selector, ViewWrapper};
 use cursive::views::{
     BoxView, Button, Canvas, Dialog, EditView, IdView, LinearLayout, SelectView, TextContent,
-    TextView, ScrollView
+    TextView,
 };
 use cursive::Cursive;
 use dao::{CVDao, CVManager};
@@ -20,7 +20,6 @@ use renderer::render_pdf;
 use std::any::TypeId;
 use std::fmt::Display;
 use std::str::FromStr;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use url::Url;
 
@@ -40,7 +39,6 @@ static LANGS_ID: &'static str = "languages";
 static LANG_CHILD_ID: &'static str = "language_child";
 static EDU_ID: &'static str = "education";
 static EDU_CHILD_ID: &'static str = "education_child";
-static FORM_ROOT_ID: &'static str = "form_root";
 
 pub struct Graphics {
     engine: Cursive,
@@ -81,7 +79,7 @@ impl Graphics {
         }
         LinearLayout::horizontal()
             .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(col_size))
-            .child(EditView::new().fixed_width(col_size))
+            .child(EditView::new().fixed_width(col_size).with_id(label_text))
     }
 
     fn form_row_default_col_size(label_text: &str) -> LinearLayout {
@@ -220,31 +218,29 @@ impl Graphics {
                 EXP_ID,
                 &Self::experience_row,
             ))
-            .with_id(FORM_ROOT_ID)
             .scrollable();
         self.engine.add_layer(
             Dialog::around(LinearLayout::horizontal().child(form))
                 .title("New CV")
                 .button("Create new CV", |s| {
-                    if let Some(mut cv) = Self::collect_form_data(s) {
-                        let manager = CVDao::new();
-                        match manager.add_cv(&mut cv) {
-                            Ok(_) => {
-                                println!(
-                                    "CV with id {} added successfully.",
-                                    cv.path.as_ref().unwrap());
-                                render_pdf(&cv);
-                            },
-                            Err(e) => println!("{:?}", e),
-                        }
+                    //TODO this is ugly as hell.
+                    let mut cv = Self::collect_form_data(s).unwrap();
+                    let manager = CVDao::new();
+                    match manager.add_cv(&mut cv) {
+                        Ok(()) => println!(
+                            "CV with id {} added successfully.",
+                            cv.path.as_ref().unwrap()
+                        ),
+                        Err(e) => println!("{:?}", e),
                     }
+                    render_pdf(&cv);
                 }),
         );
     }
 
-    fn collect_contacts(c: &mut Cursive) -> Option<Vec<Contact>> {
+    fn collect_contacts(c: &mut Cursive) -> Vec<Contact> {
         let mut res = vec![];
-        let mut contacts_root = c.find_id::<LinearLayout>(CONTACTS_ID).expect("Could not find the root of contacts.");
+        let mut contacts_root = c.find_id::<LinearLayout>(CONTACTS_ID).unwrap();
         contacts_root.call_on_any(
             &Selector::Id(CONTACT_CHILD_ID),
             Box::new(|s| {
@@ -267,68 +263,29 @@ impl Graphics {
                         .selection()
                         .unwrap()[..]
                     {
-                        //TODO e-mail verification
                         "email" => {
                             res.push(Contact::Email(EmailAddress {
                                 address: data.to_string(),
                             }));
                         }
                         "website" => {
-                            if let Ok(url) = Url::from_str(&data) {
-                                res.push(Contact::Website(url));
-                            }
+                            res.push(Contact::Website(Url::from_str(&data).unwrap()));
                         }
                         "phone" => {
-                            if let Ok(phone) = PhoneNumber::from_str(&data) {
-                                res.push(Contact::Phone(phone));
-                            }
+                            res.push(Contact::Phone(PhoneNumber::from_str(&data).unwrap()));
                         }
                         _ => panic!("Unexpected selection."),
                     }
                 }
             }),
         );
-        if res.is_empty() {
-            return None;
-        }
-        Some(res)
-    }
-
-    fn retrieve_data_from_form_row(row: &mut LinearLayout) -> Option<String> {
-        match Rc::try_unwrap(row
-            .get_child_mut(1)
-            .expect("Could not find the second child of the form row.")
-            .as_any_mut()
-            .downcast_mut::<BoxView<EditView>>()
-            .expect("Could not find the appropriate type to retrieve data from.")
-            .get_inner_mut()
-            .get_content())  {
-            Err(_) => None,
-            Ok(data) => Some(data)
-        }
+        res
     }
 
     fn collect_experience(c: &mut Cursive) -> Vec<Experience> {
         let mut res = vec![];
-        let mut experience_root = c.find_id::<LinearLayout>(EXP_ID).expect("Could not find the root of the experience.");
-        experience_root.call_on_any(
-            &Selector::Id(EXP_CHILD_ID),
-            Box::new(|s| {
-                if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
-                    let mut lin_lay = id_view.get_mut();
-                    let from = 0;
-                    let to = 1;
-                    let uni = 2;
-                    let degree = 3;
-                    let field = 4;
-                    lin_lay.get_child_mut(from);
-                    lin_lay.get_child_mut(to);
-                    lin_lay.get_child_mut(uni);
-                    lin_lay.get_child_mut(degree);
-                    lin_lay.get_child_mut(field);
-                }
-            })
-        );
+        let mut experience_root = c.find_id::<LinearLayout>(EXP_ID).unwrap();
+        //experience_root.call_on_any()
         res
     }
 
@@ -343,41 +300,43 @@ impl Graphics {
     }
 
     fn collect_basic_info(c: &mut Cursive) -> Option<BasicInfo> {
-        let mut form_root = c.find_id::<LinearLayout>(FORM_ROOT_ID).expect("Could not find the root of the form.");
-        let name_id = 0;
-        let surname_id = 1;
-        let dob = c.call_on_id("Date of birth", |s: &mut DateView| s.retrieve_date())
-            .expect("error colleting dob")
-            .expect("error colleting dob");
-        match Self::collect_contacts(c) {
-             None => None,
-             Some(contacts) => Some(BasicInfo::new(
-                                        "Hello",
-                                        "World",
-                                        dob,
-                                        contacts))
-        }
-
+        let name =
+            c.call_on_id("Name", |s: &mut BoxView<EditView>| {
+                s.get_inner().get_content()
+            }).unwrap();
+        let surname =
+            c.call_on_id("Surname", |s: &mut BoxView<EditView>| {
+                s.get_inner().get_content()
+            }).unwrap();
+        let dob = c
+            .call_on_id("Date of birth", |s: &mut DateView| s.retrieve_date())
+            .unwrap()
+            .unwrap();
+        Some(BasicInfo::new(
+            &name,
+            &surname,
+            dob,
+            Self::collect_contacts(c),
+        ))
     }
 
     // This handler is responsible for collecting the data from the "New CV" form.
     pub fn collect_form_data(c: &mut Cursive) -> Option<CV> {
-        match Self::collect_basic_info(c) {
-            Some(basic_info) => {
-                match CVBuilder::default(basic_info)
-                    .experience(Self::collect_experience(c))
-                    .education(Self::collect_education(c))
-                    .languages(Self::collect_languages(c))
-                    .build() {
-                    Ok(cv) => Some(cv),
-                    Err(err) => {
-                        eprintln!("{}", err);
-                        None
-                    }
+        if let Some(basic) = Self::collect_basic_info(c) {
+            return match CVBuilder::default(basic)
+                .experience(Self::collect_experience(c))
+                .education(Self::collect_education(c))
+                .languages(Self::collect_languages(c))
+                .build()
+            {
+                Ok(cv) => Some(cv),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    None
                 }
-            },
-            None => None
+            };
         }
+        None
     }
 
     // Fearlessly stolen from the cursive example.
