@@ -152,7 +152,7 @@ pub struct TimeSpan {
 }
 
 impl TimeSpan {
-    fn new(from: NaiveDate, to: NaiveDate) -> TimeSpan {
+    pub fn new(from: NaiveDate, to: NaiveDate) -> TimeSpan {
         if from > to {
             panic!("The lefthand boundary must be less or equal to the righthand one.");
         }

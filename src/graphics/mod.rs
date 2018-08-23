@@ -1,6 +1,7 @@
 use self::datepicker::{DatePicker, DateView};
 use base::contact_types;
 use base::LanguageProficiency;
+use base::TimeSpan;
 use base::{
     BasicInfo, CVBuilder, Contact, Education, EmailAddress, Experience, Lang, Language, CV,
 };
@@ -19,6 +20,7 @@ use phonenumber::PhoneNumber;
 use renderer::render_pdf;
 use std::any::TypeId;
 use std::fmt::Display;
+use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use url::Url;
@@ -39,6 +41,7 @@ static LANGS_ID: &'static str = "languages";
 static LANG_CHILD_ID: &'static str = "language_child";
 static EDU_ID: &'static str = "education";
 static EDU_CHILD_ID: &'static str = "education_child";
+static FORM_ROOT_ID: &'static str = "form_root";
 
 pub struct Graphics {
     engine: Cursive,
@@ -218,22 +221,29 @@ impl Graphics {
                 EXP_ID,
                 &Self::experience_row,
             ))
+            //TODO should dynamically fit to the content, this is just a hot fix
+            .fixed_height(2000)
             .scrollable();
         self.engine.add_layer(
-            Dialog::around(LinearLayout::horizontal().child(form))
+            Dialog::around(form)
                 .title("New CV")
                 .button("Create new CV", |s| {
-                    //TODO this is ugly as hell.
-                    let mut cv = Self::collect_form_data(s).unwrap();
-                    let manager = CVDao::new();
-                    match manager.add_cv(&mut cv) {
-                        Ok(()) => println!(
-                            "CV with id {} added successfully.",
-                            cv.path.as_ref().unwrap()
-                        ),
-                        Err(e) => println!("{:?}", e),
+                    if let Some(mut cv) = Self::collect_form_data(s) {
+                        let manager = CVDao::new();
+                        match manager.add_cv(&mut cv) {
+                            Ok(_) => {
+                                println!(
+                                    "CV with id {} added successfully.",
+                                    cv.path.as_ref().unwrap()
+                                );
+                                match render_pdf(&cv) {
+                                    Err(e) => eprintln!("Could not render PDF."),
+                                    Ok(_) => println!("CV rendered successfully."),
+                                }
+                            }
+                            Err(e) => println!("{:?}", e),
+                        }
                     }
-                    render_pdf(&cv);
                 }),
         );
     }
@@ -282,20 +292,190 @@ impl Graphics {
         res
     }
 
+    fn get_data_form_row(view: &mut View) -> Option<String> {
+        let data_index = 1;
+        match Rc::try_unwrap(
+            view.as_any_mut()
+                .downcast_mut::<LinearLayout>()
+                .unwrap()
+                .get_child_mut(data_index)
+                .unwrap()
+                .as_any_mut()
+                .downcast_mut::<IdView<BoxView<EditView>>>()
+                .unwrap()
+                .get_mut()
+                .get_inner()
+                .get_content(),
+        ) {
+            Ok(data) => Some(data),
+            Err(_) => None,
+        }
+    }
+
     fn collect_experience(c: &mut Cursive) -> Vec<Experience> {
         let mut res = vec![];
-        let mut experience_root = c.find_id::<LinearLayout>(EXP_ID).unwrap();
-        //experience_root.call_on_any()
+        let mut experience_root = c
+            .find_id::<LinearLayout>(EXP_ID)
+            .expect("Could not find the root of the experience.");
+        experience_root.call_on_any(
+            &Selector::Id(EXP_CHILD_ID),
+            Box::new(|s| {
+                if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
+                    let mut lin_lay = id_view.get_mut();
+                    let from = 0;
+                    let to = 1;
+                    let employer = 2;
+                    let job_name = 3;
+                    let description = 4;
+                    let from = lin_lay
+                        .get_child_mut(from)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<IdView<DateView>>()
+                        .unwrap()
+                        .get_mut()
+                        .retrieve_date();
+                    let to = lin_lay
+                        .get_child_mut(to)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<IdView<DateView>>()
+                        .unwrap()
+                        .get_mut()
+                        .retrieve_date();
+                    let employer =
+                        Self::get_data_form_row(lin_lay.get_child_mut(employer).unwrap());
+                    let job_name =
+                        Self::get_data_form_row(lin_lay.get_child_mut(job_name).unwrap());
+                    let description =
+                        Self::get_data_form_row(lin_lay.get_child_mut(description).unwrap());
+                    // This runs here...
+                    if let (
+                        Some(from),
+                        Some(to),
+                        Some(employer),
+                        Some(job_name),
+                        Some(description),
+                    ) = (from, to, employer, job_name, description)
+                    {
+                        // ...but here, it doesn't.
+                        res.push(Experience {
+                            span: TimeSpan::new(from, to),
+                            employer,
+                            job_name,
+                            description,
+                        });
+                    }
+                }
+            }),
+        );
         res
     }
 
+    // Refactor with collect_experience
     fn collect_education(c: &mut Cursive) -> Vec<Education> {
         let mut res = vec![];
+        let mut experience_root = c
+            .find_id::<LinearLayout>(EXP_ID)
+            .expect("Could not find the root of the education.");
+        experience_root.call_on_any(
+            &Selector::Id(EDU_CHILD_ID),
+            Box::new(|s| {
+                if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
+                    let mut lin_lay = id_view.get_mut();
+                    let from = 0;
+                    let to = 1;
+                    let uni_name = 2;
+                    let degree = 3;
+                    let field_of_study = 4;
+                    let from = lin_lay
+                        .get_child_mut(from)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<IdView<DateView>>()
+                        .unwrap()
+                        .get_mut()
+                        .retrieve_date();
+                    let to = lin_lay
+                        .get_child_mut(to)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<IdView<DateView>>()
+                        .unwrap()
+                        .get_mut()
+                        .retrieve_date();
+                    let uni_name =
+                        Self::get_data_form_row(lin_lay.get_child_mut(uni_name).unwrap());
+                    let degree = Self::get_data_form_row(lin_lay.get_child_mut(degree).unwrap());
+                    let field_of_study =
+                        Self::get_data_form_row(lin_lay.get_child_mut(field_of_study).unwrap());
+                    // This runs here...
+                    if let (
+                        Some(from),
+                        Some(to),
+                        Some(uni_name),
+                        Some(degree),
+                        Some(field_of_study),
+                    ) = (from, to, uni_name, degree, field_of_study)
+                    {
+                        // ...but here, it doesn't.
+                        res.push(Education {
+                            span: TimeSpan::new(from, to),
+                            uni_name,
+                            degree,
+                            field_of_study,
+                        });
+                    }
+                }
+            }),
+        );
         res
     }
 
     fn collect_languages(c: &mut Cursive) -> Vec<Lang> {
         let mut res = vec![];
+        let mut experience_root = c
+            .find_id::<LinearLayout>(EXP_ID)
+            .expect("Could not find the root of the education.");
+        experience_root.call_on_any(
+            &Selector::Id(EDU_CHILD_ID),
+            Box::new(|s| {
+                if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
+                    let mut lin_lay = id_view.get_mut();
+                    let language = 0;
+                    let proficiency = 1;
+                    let notes = 2;
+                    let language = lin_lay
+                        .get_child_mut(language)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<SelectView<Language>>()
+                        .unwrap()
+                        .selection();
+                    let proficiency = lin_lay
+                        .get_child_mut(proficiency)
+                        .unwrap()
+                        .as_any_mut()
+                        .downcast_mut::<SelectView<LanguageProficiency>>()
+                        .unwrap()
+                        .selection();
+                    let notes = Self::get_data_form_row(lin_lay.get_child_mut(notes).unwrap());
+                    if let (Some(language), Some(proficiency), Some(notes)) =
+                        (language, proficiency, notes)
+                    {
+                        if let (Ok(language), Ok(proficiency)) =
+                            (Rc::try_unwrap(language), Rc::try_unwrap(proficiency))
+                        {
+                            res.push(Lang {
+                                language,
+                                proficiency,
+                                notes,
+                            });
+                        }
+                    }
+                }
+            }),
+        );
         res
     }
 
