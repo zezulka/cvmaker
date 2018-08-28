@@ -17,5 +17,5 @@ url_serde = "0.2.0"
 isocountry = "0.2.0"
 derive_builder = "0.5.1"
 vfs = "0.2.0"
-pdf-canvas = "0.6.0"
+printpdf = "0.2.8"
 uuid = { version = "0.6", features = ["serde", "v4"]}
