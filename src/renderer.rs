@@ -3,24 +3,28 @@ use base::CV;
 use base::{BasicInfo, Education, Experience, Lang};
 use std::fmt::Debug;
 use std::io::Result as IoRes;
+use printpdf::{ Mm, PdfDocument, types::plugins::graphics::two_dimensional::IndirectFontRef };
+use std::fs::File;
+use std::io::BufWriter;
+use std::iter::FromIterator;
 
 struct Point {
     x: f32,
     y: f32,
 }
 
-struct Resolution {
-    width: f32,
-    height: f32,
+// Simple wrapper to be used with the printpdf library.
+struct SheetDim {
+    width: Mm,
+    height: Mm,
 }
 
-impl Resolution {
-    // Respect the ratio specified by ISO 216
-    // https://www.cl.cam.ac.uk/~mgk25/iso-paper.html
-    fn new_a4(width: f32) -> Resolution {
-        Resolution {
-            width,
-            height: width * 1.4142,
+impl SheetDim {
+    // Source : https://www.papersizes.org/a-paper-sizes.htm
+    fn a4() -> SheetDim {
+        SheetDim {
+            width : Mm(210.0),
+            height: Mm(297.0),
         }
     }
 }
@@ -50,10 +54,14 @@ fn render_languages(data: &Vec<Lang>) -> IoRes<()> {
 
 //TODO : maybe add more structs which would improve the library usage.
 pub fn render_pdf(cv: &CV) -> Result<(), String> {
-    // Leave the parameters hardwired for now.
-    let res = Resolution::new_a4(1000.0);
-    let Resolution { width, height } = res;
-    let lorem_ipsum = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.";
+    let SheetDim { width, height } = SheetDim::a4();
+    let (doc, page1, layer1) = PdfDocument::new(format!("CV - {} {}", cv.basic.name, cv.basic.surname),
+                                                width, height, "Layer 1".to_string());
+    let current_layer = doc.get_page(page1).get_layer(layer1);
+    let font = doc.add_external_font(File::open("src/resources/fonts/OpenSans-Regular.ttf")
+        .unwrap()).unwrap();
+    current_layer.use_text("Why does it hurt when I pee?", 17, Mm(50.0), Mm(50.0), &font);
+    doc.save(&mut BufWriter::new(File::create("/tmp/test_working.pdf").unwrap())).unwrap();
     //render_basic_info(&cv.basic)?;
     //render_experience(&cv.experience)?;
     //render_education(&cv.education)?;
