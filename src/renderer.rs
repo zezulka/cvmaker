@@ -35,9 +35,10 @@ struct RendererCoordinates {
 
 impl RendererCoordinates {
     pub fn start(dim: &SheetDim) -> RendererCoordinates {
+        let start_height = dim.height - ROW_HEIGHT;
         RendererCoordinates {
             col: Mm(0.0),
-            row: dim.height,
+            row: start_height,
         }
     }
 }
@@ -49,13 +50,6 @@ struct Renderer<'a> {
     current: RendererCoordinates,
     boundaries: &'a SheetDim,
     font: IndirectFontRef,
-}
-
-// To be used with Renderer only.
-// Tells the renderer which way to go after a line of text has been prepared in the buffer.
-enum CursorMovement {
-    Nothing,
-    Newline,
 }
 
 impl<'a> Renderer<'a> {
@@ -91,41 +85,67 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn render_text(&mut self, text: &str, post_movement: CursorMovement) {
+    fn render_texts(&mut self, data: Vec<String>) {
+        let font_size = 15;
+        self.canvas.begin_text_section();
+        self.canvas.set_font(&self.font, font_size);
+        self.canvas.set_text_cursor(Mm(10.0), Mm(10.0));
+        self.canvas.set_line_height(font_size);
+        self.canvas.set_word_spacing(3000);
         self.canvas
-            .use_text(text, 17, self.current.col, self.current.row, &self.font);
-        use self::CursorMovement::*;
-        match post_movement {
-            Nothing => (),
-            //TODO the newline offset might need to be tempered with.
-            Newline => self.move_cursor(RendererCoordinates {
-                col: Mm(0.0),
-                row: Mm(20.0),
-            }),
-        }
+            .set_text_cursor(self.current.col, self.current.row);
+        let mut future_row_pos: f64 = 0.0;
+        data.iter().for_each(|line| {
+            self.canvas.write_text(line.as_str(), &self.font);
+            self.canvas.add_line_break();
+            future_row_pos += font_size as f64;
+        });
+        self.move_cursor_with_offset(RendererCoordinates {
+            row: Mm(future_row_pos),
+            col: Mm(0.0),
+        });
+        self.canvas.end_text_section();
     }
 
-    fn move_cursor(&mut self, diff: RendererCoordinates) {
+    fn render_text(&mut self, text: &str) {
+        self.render_texts(vec![text.to_string()]);
+    }
+
+    /// Note: The y axis is inverted, therefore passing RendererCoordinates { col : Mm(0.0), row : Mm(5.5) }
+    /// will have the intended effect of moving 5.5 mm BELOW, the rendering algorithm actually
+    /// condiders the origin of the document as the left bottom corner, so y the value passed must
+    /// be actually subtracted from the current cursor.
+    fn move_cursor_with_offset(&mut self, diff: RendererCoordinates) {
         self.current.col += diff.col;
-        self.current.row += diff.row;
+        self.current.row -= diff.row;
     }
 
     fn render_basic_info(&mut self) -> RendererResult {
         let basic = &self.cv.basic;
-        self.render_text(&basic.name, CursorMovement::Nothing);
-        self.render_text(&basic.surname, CursorMovement::Newline);
+        let mut basic_vec = vec![
+            basic.name.to_string() + " " + &basic.surname,
+            "Date of birth: ".to_string() + &basic.dob.unwrap().to_string(),
+        ];
+        basic
+            .contacts
+            .iter()
+            .for_each(|contact| basic_vec.push(contact.to_string()));
+        self.render_texts(basic_vec);
         Ok(())
     }
 
-    fn render_experience(&self) -> RendererResult {
+    fn render_experience(&mut self) -> RendererResult {
+        self.cv.experience.iter().for_each(|experience| self.render_text(&format!("{:?}", experience)));
         Ok(())
     }
 
-    fn render_education(&self) -> RendererResult {
+    fn render_education(&mut self) -> RendererResult {
+        self.cv.education.iter().for_each(|edu| self.render_text(&format!("{:?}", edu)));
         Ok(())
     }
 
-    fn render_languages(&self) -> RendererResult {
+    fn render_languages(&mut self) -> RendererResult {
+        self.cv.languages.iter().for_each(|lang| self.render_text(&format!("{:?}", lang)));
         Ok(())
     }
 }
