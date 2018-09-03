@@ -4,6 +4,7 @@ use base::{BasicInfo, Education, Experience, Lang};
 use printpdf::{
     types::pdf_layer::PdfLayerReference,
     types::plugins::graphics::two_dimensional::IndirectFontRef, Mm, PdfDocument,
+    PdfDocumentReference,
 };
 use std::fmt::Debug;
 use std::fs::File;
@@ -11,12 +12,6 @@ use std::io::BufWriter;
 use std::iter::FromIterator;
 
 type RendererResult = Result<(), String>;
-
-struct Point {
-    x: f32,
-    y: f32,
-}
-
 // Simple wrapper to be used with the printpdf library.
 struct SheetDim {
     width: Mm,
@@ -33,24 +28,92 @@ impl SheetDim {
     }
 }
 
+struct RendererCoordinates {
+    col: Mm,
+    row: Mm,
+}
+
+impl RendererCoordinates {
+    pub fn start(dim: &SheetDim) -> RendererCoordinates {
+        RendererCoordinates {
+            col: Mm(0.0),
+            row: dim.height,
+        }
+    }
+}
+
 struct Renderer<'a> {
     cv: &'a CV,
     canvas: &'a PdfLayerReference,
+    doc: PdfDocumentReference,
+    current: RendererCoordinates,
+    boundaries: &'a SheetDim,
+    font: IndirectFontRef,
+}
+
+// To be used with Renderer only.
+// Tells the renderer which way to go after a line of text has been prepared in the buffer.
+enum CursorMovement {
+    Nothing,
+    Newline,
 }
 
 impl<'a> Renderer<'a> {
-    pub fn new(cv: &'a CV, canvas: &'a PdfLayerReference) -> Self {
-        Renderer { cv, canvas }
+    pub fn new(
+        cv: &'a CV,
+        canvas: &'a PdfLayerReference,
+        dim: &'a SheetDim,
+        doc: PdfDocumentReference,
+    ) -> Self {
+        Renderer {
+            cv,
+            canvas,
+            current: RendererCoordinates::start(dim),
+            boundaries: dim,
+            font: doc
+                .add_external_font(File::open("src/resources/fonts/OpenSans-Regular.ttf").unwrap())
+                .unwrap(),
+            doc,
+        }
     }
 
-    pub fn render(&self) -> RendererResult {
+    /// This method consumes the object itself.
+    pub fn render(mut self) -> RendererResult {
         self.render_basic_info()?;
         self.render_experience()?;
         self.render_education()?;
-        self.render_languages()
+        self.render_languages()?;
+        match self.doc.save(&mut BufWriter::new(
+            File::create("/tmp/test_cv.pdf").unwrap(),
+        )) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err.to_string()),
+        }
     }
 
-    fn render_basic_info(&self) -> RendererResult {
+    fn render_text(&mut self, text: &str, post_movement: CursorMovement) {
+        self.canvas
+            .use_text(text, 17, self.current.col, self.current.row, &self.font);
+        use self::CursorMovement::*;
+        match post_movement {
+            Nothing => (),
+            //TODO the newline offset might need to be tempered with.
+            Newline => self.move_cursor(RendererCoordinates {
+                col: Mm(0.0),
+                row: Mm(20.0),
+            }),
+        }
+    }
+
+    fn move_cursor(&mut self, diff: RendererCoordinates) {
+        self.current.col += diff.col;
+        self.current.row += diff.row;
+    }
+
+    fn render_basic_info(&mut self) -> RendererResult {
+        let basic = &self.cv.basic;
+        self.render_text(&basic.name, CursorMovement::Nothing);
+        self.render_text(&basic.surname, CursorMovement::Newline);
         Ok(())
     }
 
@@ -69,29 +132,15 @@ impl<'a> Renderer<'a> {
 
 //TODO : maybe add more structs which would improve the library usage.
 pub fn render_pdf(cv: &CV) -> RendererResult {
-    let SheetDim { width, height } = SheetDim::a4();
-    let (doc, page1, layer1) = PdfDocument::new(
+    let dim = SheetDim::a4();
+    let SheetDim { width, height } = dim;
+    let (doc, page_idx, layer_idx) = PdfDocument::new(
         format!("CV - {} {}", cv.basic.name, cv.basic.surname),
         width,
         height,
-        "Layer 1".to_string(),
+        "main layer".to_string(),
     );
-    let current_layer = doc.get_page(page1).get_layer(layer1);
-    let font = doc
-        .add_external_font(File::open("src/resources/fonts/OpenSans-Regular.ttf").unwrap())
-        .unwrap();
-    current_layer.use_text(
-        "Why does it hurt when I pee?",
-        17,
-        Mm(50.0),
-        Mm(50.0),
-        &font,
-    );
-
-    doc.save(&mut BufWriter::new(
-        File::create("/tmp/test_working.pdf").unwrap(),
-    )).unwrap();
-    Renderer::new(&cv, &current_layer).render()
+    Renderer::new(&cv, &doc.get_page(page_idx).get_layer(layer_idx), &dim, doc).render()
 }
 
 #[cfg(test)]

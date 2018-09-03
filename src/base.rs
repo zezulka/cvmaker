@@ -52,7 +52,7 @@ pub struct EmailAddress {
 }
 
 impl EmailAddress {
-    fn from(address: &str) -> Result<EmailAddress, String> {
+    pub fn from(address: &str) -> Result<EmailAddress, String> {
         if !is_valid_email(address) {
             return Err("Not a valid address.".to_string());
         }
