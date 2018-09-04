@@ -3,8 +3,8 @@ use base::CV;
 use base::{BasicInfo, Education, Experience, Lang};
 use printpdf::{
     types::pdf_layer::PdfLayerReference,
-    types::plugins::graphics::two_dimensional::IndirectFontRef, Mm, PdfDocument,
-    PdfDocumentReference, PdfConformance
+    types::plugins::graphics::two_dimensional::IndirectFontRef, Cmyk, Color, Line, Mm,
+    PdfConformance, PdfDocument, PdfDocumentReference, Point, Rgb,
 };
 use std::fmt::Debug;
 use std::fs::File;
@@ -50,6 +50,7 @@ struct Renderer<'a> {
     current: RendererCoordinates,
     boundaries: &'a SheetDim,
     font: IndirectFontRef,
+    italic_font: IndirectFontRef,
 }
 
 impl<'a> Renderer<'a> {
@@ -67,18 +68,24 @@ impl<'a> Renderer<'a> {
             font: doc
                 .add_external_font(File::open("src/resources/fonts/OpenSans-Regular.ttf").unwrap())
                 .unwrap(),
+            italic_font: doc
+                .add_external_font(
+                    File::open("src/resources/fonts/OpenSans-LightItalic.ttf").unwrap(),
+                )
+                .unwrap(),
             doc,
         }
     }
 
     /// This method consumes the object itself.
     pub fn render(mut self) -> RendererResult {
+        self.render_italic_text("CV, bla bla");
         self.render_basic_info()?;
         self.render_experience()?;
         self.render_education()?;
         self.render_languages()?;
         // ISO standard optimized for print production.https://en.wikipedia.org/wiki/PDF/X
-        self.doc.repair_errors(PdfConformance::X5G_2010_PDF_1_6);
+        //self.doc.repair_errors(PdfConformance::X5G_2010_PDF_1_6);
         match self.doc.save(&mut BufWriter::new(
             File::create("/tmp/test_cv.pdf").unwrap(),
         )) {
@@ -88,21 +95,25 @@ impl<'a> Renderer<'a> {
     }
 
     //TODO wrap lines if they are too long
-    fn render_text_vector(&mut self, data: Vec<String>) {
+    fn render_text_vector(&mut self, data: Vec<String>, italic_font : bool) {
         let font_size = 15;
         self.canvas.begin_text_section();
-        self.canvas.set_font(&self.font, font_size);
-        self.canvas.set_text_cursor(Mm(10.0), Mm(10.0));
-        self.canvas.set_line_height(font_size);
-        self.canvas.set_word_spacing(3000);
-        self.canvas
-            .set_text_cursor(self.current.col, self.current.row);
         let mut future_row_pos: f64 = 0.0;
-        data.iter().for_each(|line| {
-            self.canvas.write_text(line.as_str(), &self.font);
-            self.canvas.add_line_break();
-            future_row_pos += font_size as f64;
-        });
+        // Create an artifical scope because we borrow a font
+        {
+            let font = if italic_font { &self.italic_font } else { &self.font };
+            self.canvas.set_font(font, font_size);
+            self.canvas.set_text_cursor(Mm(10.0), Mm(10.0));
+            self.canvas.set_line_height(font_size);
+            self.canvas.set_word_spacing(3000);
+            self.canvas
+                .set_text_cursor(self.current.col, self.current.row);
+            data.iter().for_each(|line| {
+                self.canvas.write_text(line.as_str(), font);
+                self.canvas.add_line_break();
+                future_row_pos += font_size as f64;
+            });
+        }
         self.move_cursor_with_offset(RendererCoordinates {
             row: Mm(future_row_pos),
             col: Mm(0.0),
@@ -111,7 +122,11 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_text(&mut self, text: &str) {
-        self.render_text_vector(vec![text.to_string()]);
+        self.render_text_vector(vec![text.to_string()], false);
+    }
+
+    fn render_italic_text(&mut self, text: &str) {
+        self.render_text_vector(vec![text.to_string()], true);
     }
 
     /// Note: The y axis is inverted, therefore passing RendererCoordinates { col : Mm(0.0), row : Mm(5.5) }
@@ -133,7 +148,7 @@ impl<'a> Renderer<'a> {
             .contacts
             .iter()
             .for_each(|contact| basic_vec.push(contact.to_string()));
-        self.render_text_vector(basic_vec);
+        self.render_text_vector(basic_vec, false);
         Ok(())
     }
 

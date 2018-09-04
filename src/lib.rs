@@ -63,7 +63,7 @@ fn run_mocked_renderer() {
                     language: Language::English,
                     proficiency: LanguageProficiency::B1,
                     notes: "capable of basic communication".to_string(),
-                }
+                },
             ])
             .experience(vec![Experience {
                 span: TimeSpan::new(
