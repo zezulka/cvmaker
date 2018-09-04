@@ -4,7 +4,7 @@ use base::{BasicInfo, Education, Experience, Lang};
 use printpdf::{
     types::pdf_layer::PdfLayerReference,
     types::plugins::graphics::two_dimensional::IndirectFontRef, Mm, PdfDocument,
-    PdfDocumentReference,
+    PdfDocumentReference, PdfConformance
 };
 use std::fmt::Debug;
 use std::fs::File;
@@ -35,7 +35,7 @@ struct RendererCoordinates {
 
 impl RendererCoordinates {
     pub fn start(dim: &SheetDim) -> RendererCoordinates {
-        let start_height = dim.height - ROW_HEIGHT;
+        let start_height = dim.height - Mm(15.0);
         RendererCoordinates {
             col: Mm(0.0),
             row: start_height,
@@ -77,6 +77,8 @@ impl<'a> Renderer<'a> {
         self.render_experience()?;
         self.render_education()?;
         self.render_languages()?;
+        // ISO standard optimized for print production.https://en.wikipedia.org/wiki/PDF/X
+        self.doc.repair_errors(PdfConformance::X5G_2010_PDF_1_6);
         match self.doc.save(&mut BufWriter::new(
             File::create("/tmp/test_cv.pdf").unwrap(),
         )) {
@@ -85,7 +87,8 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn render_texts(&mut self, data: Vec<String>) {
+    //TODO wrap lines if they are too long
+    fn render_text_vector(&mut self, data: Vec<String>) {
         let font_size = 15;
         self.canvas.begin_text_section();
         self.canvas.set_font(&self.font, font_size);
@@ -108,13 +111,13 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_text(&mut self, text: &str) {
-        self.render_texts(vec![text.to_string()]);
+        self.render_text_vector(vec![text.to_string()]);
     }
 
     /// Note: The y axis is inverted, therefore passing RendererCoordinates { col : Mm(0.0), row : Mm(5.5) }
-    /// will have the intended effect of moving 5.5 mm BELOW, the rendering algorithm actually
+    /// will have the intended effect of moving 5.5 mm BELOW, the rendering algorithm
     /// condiders the origin of the document as the left bottom corner, so y the value passed must
-    /// be actually subtracted from the current cursor.
+    /// be subtracted from the current cursor.
     fn move_cursor_with_offset(&mut self, diff: RendererCoordinates) {
         self.current.col += diff.col;
         self.current.row -= diff.row;
@@ -130,27 +133,35 @@ impl<'a> Renderer<'a> {
             .contacts
             .iter()
             .for_each(|contact| basic_vec.push(contact.to_string()));
-        self.render_texts(basic_vec);
+        self.render_text_vector(basic_vec);
         Ok(())
     }
 
     fn render_experience(&mut self) -> RendererResult {
-        self.cv.experience.iter().for_each(|experience| self.render_text(&format!("{:?}", experience)));
+        self.cv
+            .experience
+            .iter()
+            .for_each(|experience| self.render_text(&format!("{:?}", experience)));
         Ok(())
     }
 
     fn render_education(&mut self) -> RendererResult {
-        self.cv.education.iter().for_each(|edu| self.render_text(&format!("{:?}", edu)));
+        self.cv
+            .education
+            .iter()
+            .for_each(|edu| self.render_text(&format!("{:?}", edu)));
         Ok(())
     }
 
     fn render_languages(&mut self) -> RendererResult {
-        self.cv.languages.iter().for_each(|lang| self.render_text(&format!("{:?}", lang)));
+        self.cv
+            .languages
+            .iter()
+            .for_each(|lang| self.render_text(&format!("{:?}", lang)));
         Ok(())
     }
 }
 
-//TODO : maybe add more structs which would improve the library usage.
 pub fn render_pdf(cv: &CV) -> RendererResult {
     let dim = SheetDim::a4();
     let SheetDim { width, height } = dim;
@@ -163,6 +174,7 @@ pub fn render_pdf(cv: &CV) -> RendererResult {
     Renderer::new(&cv, &doc.get_page(page_idx).get_layer(layer_idx), &dim, doc).render()
 }
 
+//TODO write a bit more tests.
 #[cfg(test)]
 pub mod test {
     use super::*;

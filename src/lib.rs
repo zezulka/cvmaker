@@ -35,10 +35,7 @@ pub fn run() -> Result<(), Box<Error>> {
 }
 
 fn run_mocked_renderer() {
-    use base::BasicInfo;
-    use base::CVBuilder;
-    use base::Contact;
-    use base::EmailAddress;
+    use base::*;
     use chrono::NaiveDate;
     use renderer::render_pdf;
 
@@ -49,6 +46,45 @@ fn run_mocked_renderer() {
         NaiveDate::from_ymd(2000, 1, 1),
         vec![email],
     );
-    render_pdf(&CVBuilder::default(basic_info).build().unwrap());
+    render_pdf(
+        &CVBuilder::default(basic_info)
+            .languages(vec![
+                Lang {
+                    language: Language::Russian,
+                    proficiency: LanguageProficiency::C2,
+                    notes: "native speaker".to_string(),
+                },
+                Lang {
+                    language: Language::Arabic,
+                    proficiency: LanguageProficiency::C1,
+                    notes: String::new(),
+                },
+                Lang {
+                    language: Language::English,
+                    proficiency: LanguageProficiency::B1,
+                    notes: "capable of basic communication".to_string(),
+                }
+            ])
+            .experience(vec![Experience {
+                span: TimeSpan::new(
+                    NaiveDate::from_ymd(2015, 5, 1),
+                    NaiveDate::from_ymd(2016, 12, 15),
+                ),
+                employer: "ABC, inc.".to_string(),
+                job_name: "Translator".to_string(),
+                description: String::new(),
+            }])
+            .education(vec![Education {
+                span: TimeSpan::new(
+                    NaiveDate::from_ymd(2011, 9, 1),
+                    NaiveDate::from_ymd(2014, 6, 1),
+                ),
+                uni_name: "Cambridge".to_string(),
+                degree: "Master of Arts".to_string(),
+                field_of_study: "Applied linguistics".to_string(),
+            }])
+            .build()
+            .unwrap(),
+    );
     open_url("/tmp/test_cv.pdf");
 }
