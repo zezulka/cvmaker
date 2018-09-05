@@ -1,0 +1,28 @@
+language: rust
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+script: |
+  cargo build --verbose &&
+  cargo test  --verbose &&
+  cargo doc   --verbose
+
+branches:
+  only:
+    - master
+
+cache: cargo
+matrix:
+  include:
+    - rust: 2018-02-13
+      env: # use env so updating versions causes cache invalidation
+        - CLIPPY_VERSION=0.0.212
+      before_script:
+        - rustup component add rustfmt-preview
+        - cargo install clippy --version $CLIPPY_VERSION || echo "clippy already installed"
+      script:
+        - cargo fmt -- --write-mode=diff
+        - cargo clippy -- -D clippy
