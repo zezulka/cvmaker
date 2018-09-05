@@ -2,7 +2,6 @@ use chrono::NaiveDate;
 use fast_chemail::is_valid_email;
 use isocountry::CountryCode;
 use phonenumber::PhoneNumber;
-use serde::de::{Deserializer, Error as SerdeError, Visitor};
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
