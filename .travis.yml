@@ -1,10 +1,12 @@
 language: rust
+rust:
+  - nightly
 before_script:
   - rustup component add rustfmt-preview
   - cargo install clippy --version $CLIPPY_VERSION || echo "clippy already installed"
 script:
   - cargo build --verbose
-  - cargo fmt -- --write-mode=diff
+  - cargo fmt -- --check
   - cargo clippy -- -D clippy
   - cargo test --verbose
 
