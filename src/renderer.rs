@@ -69,13 +69,39 @@ impl Renderable for Experience {
 
 impl Renderable for Education {
     fn render_object(&self, renderer: &mut Renderer) {
-        unimplemented!()
+        let Mm(width) = renderer.boundaries.width;
+        renderer.render_text(
+            &(self.field_of_study.to_string() + "                             " + &self.span.to_string()),
+            RenderParams::default()
+                .with_font_type(FontType::Bold)
+                .with_offset(width * 0.25),
+        );
+        renderer.render_text(
+            &self.degree,
+            RenderParams::default()
+                .with_font_type(FontType::Italic)
+                .with_offset(width * 0.25),
+        );
+        renderer.render_text(
+            &self.uni_name ,
+            RenderParams::default()
+                .with_offset(width * 0.25),
+        );
     }
 }
 
 impl Renderable for Lang {
     fn render_object(&self, renderer: &mut Renderer) {
-        unimplemented!()
+        let Mm(width) = renderer.boundaries.width;
+        renderer.render_text(
+            &(self.language.to_string() + ": " + &self.proficiency.to_string()),
+            RenderParams::default()
+                .with_offset(width * 0.25),
+        );
+        renderer.render_text(
+            &self.notes,
+            RenderParams::default().with_offset(width * 0.30)
+        );
     }
 }
 
