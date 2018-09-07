@@ -132,18 +132,14 @@ impl Graphics {
                             .child(
                                 TextView::new_with_content(TextContent::new("Language name"))
                                     .fixed_width(20),
-                            )
-                            .child(select_view_from_range(Language::iterator())),
-                    )
-                    .child(
+                            ).child(select_view_from_range(Language::iterator())),
+                    ).child(
                         LinearLayout::horizontal()
                             .child(
                                 TextView::new_with_content(TextContent::new("Proficiency"))
                                     .fixed_width(20),
-                            )
-                            .child(select_view_from_range(LanguageProficiency::iterator())),
-                    )
-                    .child(Self::form_row_default_col_size("Additional notes"))
+                            ).child(select_view_from_range(LanguageProficiency::iterator())),
+                    ).child(Self::form_row_default_col_size("Additional notes"))
                     .with_id(LANG_CHILD_ID),
             )
         });
@@ -169,18 +165,15 @@ impl Graphics {
                 LinearLayout::horizontal().child(
                     TextView::new_with_content(TextContent::new("Contacts")).fixed_width(20),
                 ),
-            )
-            .child(
+            ).child(
                 LinearLayout::vertical()
                     .child(
                         LinearLayout::horizontal()
                             .child(Self::contact_select_view())
                             .child(EditView::new().fixed_width(20))
                             .with_id(CONTACT_CHILD_ID),
-                    )
-                    .with_id(CONTACTS_ID),
-            )
-            .child(LinearLayout::horizontal().child(Button::new("Add another", event_fun)))
+                    ).with_id(CONTACTS_ID),
+            ).child(LinearLayout::horizontal().child(Button::new("Add another", event_fun)))
     }
 
     fn first_uppercase(s: &str) -> String {
@@ -201,8 +194,7 @@ impl Graphics {
                     TextView::new_with_content(TextContent::new(Self::first_uppercase(label)))
                         .fixed_width(20),
                 ),
-            )
-            .child(LinearLayout::vertical().with_id(label))
+            ).child(LinearLayout::vertical().with_id(label))
             .child(LinearLayout::horizontal().child(Button::new("Add another", event_fun)))
     }
 
@@ -215,8 +207,7 @@ impl Graphics {
             .child(Self::expandable_linear_layout(
                 LANGS_ID,
                 &Self::language_row,
-            ))
-            .child(Self::expandable_linear_layout(EDU_ID, &Self::education_row))
+            )).child(Self::expandable_linear_layout(EDU_ID, &Self::education_row))
             .child(Self::expandable_linear_layout(
                 EXP_ID,
                 &Self::experience_row,
@@ -480,12 +471,12 @@ impl Graphics {
     }
 
     fn collect_basic_info(c: &mut Cursive) -> Option<BasicInfo> {
-        let name =
-            c.call_on_id("Name", |s: &mut BoxView<EditView>| {
+        let name = c
+            .call_on_id("Name", |s: &mut BoxView<EditView>| {
                 s.get_inner().get_content()
             }).unwrap();
-        let surname =
-            c.call_on_id("Surname", |s: &mut BoxView<EditView>| {
+        let surname = c
+            .call_on_id("Surname", |s: &mut BoxView<EditView>| {
                 s.get_inner().get_content()
             }).unwrap();
         let dob = c
@@ -525,56 +516,62 @@ impl Graphics {
         let counter = AtomicUsize::new(1);
 
         // The menubar is a list of (label, menu tree) pairs.
-        self.engine.menubar()
+        self.engine
+            .menubar()
             // We add a new "File" tree
-            .add_subtree("File",
-                         MenuTree::new()
-                             // Trees are made of leaves, with are directly actionable...
-                             .leaf("New", move |s| {
-                                 // Here we use the counter to add an entry
-                                 // in the list of "Recent" items.
-                                 let i = counter.fetch_add(1, Ordering::Relaxed);
-                                 let filename = format!("New {}", i);
-                                 s.menubar().find_subtree("File").unwrap()
-                                     .find_subtree("Recent").unwrap()
-                                     .insert_leaf(0, filename, |_| ());
+            .add_subtree(
+                "File",
+                MenuTree::new()
+                    // Trees are made of leaves, with are directly actionable...
+                    .leaf("New", move |s| {
+                        // Here we use the counter to add an entry
+                        // in the list of "Recent" items.
+                        let i = counter.fetch_add(1, Ordering::Relaxed);
+                        let filename = format!("New {}", i);
+                        s.menubar()
+                            .find_subtree("File")
+                            .unwrap()
+                            .find_subtree("Recent")
+                            .unwrap()
+                            .insert_leaf(0, filename, |_| ());
 
-                                 s.add_layer(Dialog::info("New file!"));
-                             })
-                             // ... and of sub-trees, which open up when selected.
-                             .subtree("Recent",
-                                      // The `.with()` method can help when running loops
-                                      // within builder patterns.
-                                      MenuTree::new().with(|tree| {
-                                          for i in 1..100 {
-                                              // We don't actually do anything here,
-                                              // but you could!
-                                              tree.add_leaf(format!("Item {}", i), |_| ())
-                                          }
-                                      }))
-                             // Delimiter are simple lines between items,
-                             // and cannot be selected.
-                             .delimiter()
-                             .with(|tree| {
-                                 for i in 1..10 {
-                                     tree.add_leaf(format!("Option {}", i), |_| ());
-                                 }
-                             }))
-            .add_subtree("Help",
-                         MenuTree::new()
-                             .subtree("Help",
-                                      MenuTree::new()
-                                          .leaf("General", |s| {
-                                              s.add_layer(Dialog::info("Help message!"))
-                                          })
-                                          .leaf("Online", |s| {
-                                              let text = "Google it yourself!\n\
-                                              Kids, these days...";
-                                              s.add_layer(Dialog::info(text))
-                                          }))
-                             .leaf("About",
-                                   |s| s.add_layer(Dialog::info("Cursive v0.0.0"))))
-            .add_delimiter()
+                        s.add_layer(Dialog::info("New file!"));
+                    })
+                    // ... and of sub-trees, which open up when selected.
+                    .subtree(
+                        "Recent",
+                        // The `.with()` method can help when running loops
+                        // within builder patterns.
+                        MenuTree::new().with(|tree| {
+                            for i in 1..100 {
+                                // We don't actually do anything here,
+                                // but you could!
+                                tree.add_leaf(format!("Item {}", i), |_| ())
+                            }
+                        }),
+                    )
+                    // Delimiter are simple lines between items,
+                    // and cannot be selected.
+                    .delimiter()
+                    .with(|tree| {
+                        for i in 1..10 {
+                            tree.add_leaf(format!("Option {}", i), |_| ());
+                        }
+                    }),
+            ).add_subtree(
+                "Help",
+                MenuTree::new()
+                    .subtree(
+                        "Help",
+                        MenuTree::new()
+                            .leaf("General", |s| s.add_layer(Dialog::info("Help message!")))
+                            .leaf("Online", |s| {
+                                let text = "Google it yourself!\n\
+                                            Kids, these days...";
+                                s.add_layer(Dialog::info(text))
+                            }),
+                    ).leaf("About", |s| s.add_layer(Dialog::info("Cursive v0.0.0"))),
+            ).add_delimiter()
             .add_leaf("Quit", |s| s.quit());
         self.engine.set_autohide_menu(false);
     }

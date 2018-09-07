@@ -64,8 +64,7 @@ fn run_mocked_renderer() {
                     proficiency: LanguageProficiency::B1,
                     notes: "capable of basic communication".to_string(),
                 },
-            ])
-            .experience(vec![Experience {
+            ]).experience(vec![Experience {
                 span: TimeSpan::new(
                     NaiveDate::from_ymd(2015, 5, 1),
                     NaiveDate::from_ymd(2016, 12, 15),
@@ -73,8 +72,7 @@ fn run_mocked_renderer() {
                 employer: "ABC, inc.".to_string(),
                 job_name: "Translator".to_string(),
                 description: "Yes, I translate stuff. I'm a translator.".to_string(),
-            }])
-            .education(vec![Education {
+            }]).education(vec![Education {
                 span: TimeSpan::new(
                     NaiveDate::from_ymd(2011, 9, 1),
                     NaiveDate::from_ymd(2014, 6, 1),
@@ -82,8 +80,7 @@ fn run_mocked_renderer() {
                 uni_name: "Cambridge".to_string(),
                 degree: "Master of Arts".to_string(),
                 field_of_study: "Applied linguistics".to_string(),
-            }])
-            .build()
+            }]).build()
             .unwrap(),
     );
     open_url("/tmp/test_cv.pdf");

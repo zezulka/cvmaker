@@ -1,5 +1,5 @@
 // Responsibility: the program will create a PDF file based on the data given by the user.
-use base::{CV, Experience, Lang, Education};
+use base::{Education, Experience, Lang, CV};
 use printpdf::{
     types::pdf_layer::PdfLayerReference,
     types::plugins::graphics::two_dimensional::IndirectFontRef, Mm, PdfDocument,
@@ -61,8 +61,7 @@ impl Renderable for Experience {
         );
         renderer.render_text(
             &self.description,
-            RenderParams::default()
-                .with_offset(width * 0.25)
+            RenderParams::default().with_offset(width * 0.25),
         )
     }
 }
@@ -71,7 +70,9 @@ impl Renderable for Education {
     fn render_object(&self, renderer: &mut Renderer) {
         let Mm(width) = renderer.boundaries.width;
         renderer.render_text(
-            &(self.field_of_study.to_string() + "                             " + &self.span.to_string()),
+            &(self.field_of_study.to_string()
+                + "                             "
+                + &self.span.to_string()),
             RenderParams::default()
                 .with_font_type(FontType::Bold)
                 .with_offset(width * 0.25),
@@ -83,9 +84,8 @@ impl Renderable for Education {
                 .with_offset(width * 0.25),
         );
         renderer.render_text(
-            &self.uni_name ,
-            RenderParams::default()
-                .with_offset(width * 0.25),
+            &self.uni_name,
+            RenderParams::default().with_offset(width * 0.25),
         );
     }
 }
@@ -95,12 +95,11 @@ impl Renderable for Lang {
         let Mm(width) = renderer.boundaries.width;
         renderer.render_text(
             &(self.language.to_string() + ": " + &self.proficiency.to_string()),
-            RenderParams::default()
-                .with_offset(width * 0.25),
+            RenderParams::default().with_offset(width * 0.25),
         );
         renderer.render_text(
             &self.notes,
-            RenderParams::default().with_offset(width * 0.30)
+            RenderParams::default().with_offset(width * 0.30),
         );
     }
 }
@@ -164,8 +163,7 @@ impl<'a> Renderer<'a> {
             italic_font: doc
                 .add_external_font(
                     File::open("src/resources/fonts/OpenSans-LightItalic.ttf").unwrap(),
-                )
-                .unwrap(),
+                ).unwrap(),
             bold_font: doc
                 .add_external_font(File::open("src/resources/fonts/OpenSans-Bold.ttf").unwrap())
                 .unwrap(),

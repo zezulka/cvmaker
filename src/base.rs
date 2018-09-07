@@ -445,19 +445,16 @@ pub mod test {
                     uni_name: "Oxford".to_string(),
                     degree: "MA".to_string(),
                     field_of_study: "Speech recognition".to_string(),
-                }])
-                .experience(vec![Experience {
+                }]).experience(vec![Experience {
                     span: timespan_factory(),
                     employer: "ABC, corp.".to_string(),
                     job_name: "accountant".to_string(),
                     description: "I loved it!".to_string(),
-                }])
-                .languages(vec![Lang {
+                }]).languages(vec![Lang {
                     language: Language::English,
                     proficiency: LanguageProficiency::A1,
                     notes: "".to_string(),
-                }])
-                .build()
+                }]).build()
                 .unwrap(),
             &expected_toks,
         );
