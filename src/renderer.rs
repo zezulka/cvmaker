@@ -1,11 +1,10 @@
 // Responsibility: the program will create a PDF file based on the data given by the user.
-use base::CV;
+use base::{CV, Experience, Lang, Education};
 use printpdf::{
     types::pdf_layer::PdfLayerReference,
     types::plugins::graphics::two_dimensional::IndirectFontRef, Mm, PdfDocument,
     PdfDocumentReference,
 };
-use std::fmt::Debug;
 use std::fs::File;
 use std::io::BufWriter;
 
@@ -41,6 +40,45 @@ impl RendererCoordinates {
     }
 }
 
+trait Renderable {
+    fn render_object(&self, renderer: &mut Renderer);
+}
+
+impl Renderable for Experience {
+    fn render_object(&self, renderer: &mut Renderer) {
+        let Mm(width) = renderer.boundaries.width;
+        renderer.render_text(
+            &(self.employer.to_string() + "                             " + &self.span.to_string()),
+            RenderParams::default()
+                .with_font_type(FontType::Bold)
+                .with_offset(width * 0.25),
+        );
+        renderer.render_text(
+            &self.job_name,
+            RenderParams::default()
+                .with_font_type(FontType::Italic)
+                .with_offset(width * 0.25),
+        );
+        renderer.render_text(
+            &self.description,
+            RenderParams::default()
+                .with_offset(width * 0.25)
+        )
+    }
+}
+
+impl Renderable for Education {
+    fn render_object(&self, renderer: &mut Renderer) {
+        unimplemented!()
+    }
+}
+
+impl Renderable for Lang {
+    fn render_object(&self, renderer: &mut Renderer) {
+        unimplemented!()
+    }
+}
+
 struct Renderer<'a> {
     cv: &'a CV,
     canvas: &'a PdfLayerReference,
@@ -49,6 +87,37 @@ struct Renderer<'a> {
     boundaries: &'a SheetDim,
     font: IndirectFontRef,
     italic_font: IndirectFontRef,
+    bold_font: IndirectFontRef,
+}
+
+enum FontType {
+    Normal,
+    Italic,
+    Bold,
+}
+
+struct RenderParams {
+    offset: Option<f64>,
+    f_type: FontType,
+}
+
+impl RenderParams {
+    pub fn default() -> Self {
+        RenderParams {
+            offset: None,
+            f_type: FontType::Normal,
+        }
+    }
+
+    pub fn with_offset(mut self, offset: f64) -> Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    pub fn with_font_type(mut self, f_type: FontType) -> Self {
+        self.f_type = f_type;
+        self
+    }
 }
 
 impl<'a> Renderer<'a> {
@@ -71,6 +140,9 @@ impl<'a> Renderer<'a> {
                     File::open("src/resources/fonts/OpenSans-LightItalic.ttf").unwrap(),
                 )
                 .unwrap(),
+            bold_font: doc
+                .add_external_font(File::open("src/resources/fonts/OpenSans-Bold.ttf").unwrap())
+                .unwrap(),
             doc,
         }
     }
@@ -92,21 +164,27 @@ impl<'a> Renderer<'a> {
     }
 
     //TODO wrap lines if they are too long
-    fn render_text_vector(&mut self, data: Vec<String>, italic_font: bool, offset: Option<f64>) {
+    fn render_text_vector(
+        &mut self,
+        data: Vec<String>,
+        RenderParams { offset, f_type }: RenderParams,
+    ) {
         let font_size = 15;
         self.canvas.begin_text_section();
         let mut future_row_pos: f64 = 0.0;
         // Create an artifical scope because we borrow a font which would collide with the statement
         // right next after this scope.
         {
-            let font = if italic_font {
-                &self.italic_font
-            } else {
-                &self.font
+            use self::FontType::*;
+            let font = match f_type {
+                Normal => &self.font,
+                Italic => &self.italic_font,
+                Bold => &self.bold_font,
             };
             self.canvas.set_font(font, font_size);
             self.canvas.set_line_height(font_size);
             let mut y = self.current.col;
+
             if let Some(offset) = offset {
                 y += Mm(offset);
             }
@@ -124,12 +202,8 @@ impl<'a> Renderer<'a> {
         self.canvas.end_text_section();
     }
 
-    fn render_text_with_offset(&mut self, text: &str, offset: f64) {
-        self.render_text_vector(vec![text.to_string()], false, Some(offset));
-    }
-
-    fn render_italic_text(&mut self, text: &str) {
-        self.render_text_vector(vec![text.to_string()], true, None);
+    fn render_text(&mut self, text: &str, render_params: RenderParams) {
+        self.render_text_vector(vec![text.to_string()], render_params);
     }
 
     /// Implementation note: The y axis is inverted, therefore passing RendererCoordinates { col : Mm(0.0), row : Mm(5.5) }
@@ -151,18 +225,22 @@ impl<'a> Renderer<'a> {
             .contacts
             .iter()
             .for_each(|contact| basic_vec.push(contact.to_string()));
-        self.render_text_vector(basic_vec, false, None);
+        self.render_text_vector(basic_vec, RenderParams::default());
         Ok(())
     }
 
     fn render_data_vector<T>(&mut self, data: &Vec<T>, label: &str) -> RendererResult
     where
-        T: Debug,
+        T: Renderable,
     {
-        self.render_italic_text(label);
+        self.render_text(
+            label,
+            RenderParams::default().with_font_type(FontType::Italic),
+        );
         let Mm(width) = self.boundaries.width;
-        data.iter().for_each(|experience| {
-            self.render_text_with_offset(&format!("{:?}", experience), width * 0.25);
+        data.iter().for_each(|mut item| {
+            item.render_object(self);
+            //self.render_text_with_offset(&format!("{:?}", experience), width * 0.25);
         });
         Ok(())
     }

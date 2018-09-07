@@ -159,6 +159,12 @@ impl TimeSpan {
     }
 }
 
+impl ToString for TimeSpan {
+    fn to_string(&self) -> String {
+        self.from.to_string() + "   -   " + &self.to.to_string()
+    }
+}
+
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Education {
     pub span: TimeSpan,

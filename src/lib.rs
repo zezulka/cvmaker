@@ -72,7 +72,7 @@ fn run_mocked_renderer() {
                 ),
                 employer: "ABC, inc.".to_string(),
                 job_name: "Translator".to_string(),
-                description: String::new(),
+                description: "Yes, I translate stuff. I'm a translator.".to_string(),
             }])
             .education(vec![Education {
                 span: TimeSpan::new(
