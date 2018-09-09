@@ -4,6 +4,7 @@ rust:
 before_script:
   - rustup component add rustfmt-preview
   - cargo install clippy || echo "clippy is already installed"
+  - rustup update
 script:
   - cargo build --verbose
   - cargo fmt -- --check
