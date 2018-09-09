@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use fast_chemail::is_valid_email;
 use isocountry::CountryCode;
 use phonenumber::PhoneNumber;
+use std::collections::hash_map::DefaultHasher;
 use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
@@ -28,7 +29,7 @@ fn basic_info_factory() -> BasicInfo {
 // Coming up with an address scheme is a pain in itself. Let's at least
 // define some format
 // https://en.wikipedia.org/wiki/Address_(geography)
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Serialize, Deserialize)]
 pub struct Address {
     pub street: String,
     pub street_subunit: u32, // this is usually number of the building the address refers to
@@ -42,6 +43,16 @@ impl Hash for Address {
         self.street_subunit.hash(state);
         self.postal_code.hash(state);
         format!("{}", self.country).hash(state);
+    }
+}
+
+impl PartialEq for Address {
+    fn eq(&self, other: &Self) -> bool {
+        let mut o = DefaultHasher::new();
+        let mut s = DefaultHasher::new();
+        self.hash(&mut o);
+        self.hash(&mut s);
+        s.finish() == o.finish()
     }
 }
 
@@ -61,7 +72,7 @@ impl EmailAddress {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Eq, Serialize, Deserialize)]
 pub enum Contact {
     Email(EmailAddress),
     #[serde(with = "url_serde")]
@@ -110,6 +121,16 @@ impl Hash for Contact {
             Address(ref addr) => addr.hash(state),
             Phone(ref num) => format!("{}", num).hash(state),
         }
+    }
+}
+
+impl PartialEq for Contact {
+    fn eq(&self, other: &Self) -> bool {
+        let mut o = DefaultHasher::new();
+        let mut s = DefaultHasher::new();
+        self.hash(&mut o);
+        self.hash(&mut s);
+        s.finish() == o.finish()
     }
 }
 
