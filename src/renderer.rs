@@ -297,7 +297,6 @@ pub fn render_pdf(cv: &CV) -> RendererResult {
 //TODO write a bit more tests.
 #[cfg(test)]
 pub mod test {
-    use super::*;
     #[test]
     fn test() {}
 }

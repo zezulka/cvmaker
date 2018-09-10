@@ -144,9 +144,11 @@ where
 #[cfg(test)]
 #[allow(unused_variables)]
 mod tests {
-    use super::*;
-    use base::basic_cv_factory;
+    use super::{gen_id, CVManagerFileBased};
+    use base::test::basic_cv_factory;
+    use vfs::{VFS, MemoryFS, VPath};
     use std::collections::HashSet;
+    use dao::CVManager;
     type CVDao = CVManagerFileBased<MemoryFS>;
     #[test]
     fn test_id_gen_uniqueness() {
@@ -175,7 +177,7 @@ mod tests {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
         assert!(cv.path.is_none());
-        manager.add_cv(&mut cv);
+        manager.add_cv(&mut cv).unwrap();
         assert!(cv.path.is_some());
     }
 
@@ -188,7 +190,7 @@ mod tests {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
         assert_eq!(0, count_num_files(&manager));
-        manager.add_cv(&mut cv);
+        manager.add_cv(&mut cv).unwrap();
         // Assert that SOMETHING happened to the fs.
         assert_ne!(0, count_num_files(&manager));
     }
@@ -228,7 +230,7 @@ mod tests {
     #[test]
     fn update_cv_no_id() {
         let manager = CVDao::new_testing();
-        let mut cv = basic_cv_factory();
+        let cv = basic_cv_factory();
         assert_eq!(
             Err("Cannot update a CV which has no ID.".to_string()),
             manager.update_cv(&cv)

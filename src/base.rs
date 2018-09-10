@@ -306,7 +306,7 @@ pub mod test {
     use chrono::Datelike;
     use serde_test::{assert_ser_tokens, assert_tokens, Token};
 
-    fn basic_cv_factory() -> CV {
+    pub fn basic_cv_factory() -> CV {
         CVBuilder::default(basic_info_factory()).build().unwrap()
     }
 
@@ -350,6 +350,7 @@ pub mod test {
 
     #[test]
     fn builder_cv_basic_ok() {
+        #[allow(unused_variables)]
         let cv = basic_cv_factory();
     }
 

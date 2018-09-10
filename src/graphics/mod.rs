@@ -589,7 +589,6 @@ impl Graphics {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn form_basic_data() {
         // Might need https://github.com/gyscos/Cursive/issues/271 for UI tests.
