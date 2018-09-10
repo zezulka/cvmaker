@@ -9,7 +9,7 @@ use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
 use cursive::traits::*;
-use cursive::view::{Selector, ViewWrapper};
+use cursive::view::Selector;
 use cursive::views::{
     BoxView, Button, Canvas, Dialog, EditView, IdView, LinearLayout, SelectView, TextContent,
     TextView,
@@ -18,7 +18,7 @@ use cursive::Cursive;
 use dao::{CVDao, CVManager};
 use phonenumber::PhoneNumber;
 use renderer::render_pdf;
-use std::any::TypeId;
+use std::error::Error;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -37,10 +37,13 @@ static CONTACTS_ID: &'static str = "contacts";
 static CONTACT_CHILD_ID: &'static str = "contact_child";
 static EXP_ID: &'static str = "experience";
 static EXP_CHILD_ID: &'static str = "experience_child";
+//TODO inspect whether this will be needed (the same for FORM_ROOT_ID)
+#[allow(dead_code)]
 static LANGS_ID: &'static str = "languages";
 static LANG_CHILD_ID: &'static str = "language_child";
 static EDU_ID: &'static str = "education";
 static EDU_CHILD_ID: &'static str = "education_child";
+#[allow(dead_code)]
 static FORM_ROOT_ID: &'static str = "form_root";
 
 pub struct Graphics {
@@ -60,18 +63,20 @@ impl Graphics {
         }
     }
 
-    pub fn run(&mut self) {
-        self.init();
+    pub fn run(&mut self) -> Result<(), Box<Error>> {
+        self.init()?;
         self.engine.run();
+        Ok(())
     }
 
-    fn init(&mut self) {
+    fn init(&mut self) -> Result<(), Box<Error>> {
         self.setup_looks();
         self.add_menu();
         self.engine.add_layer(Canvas::new(()));
         self.add_form();
         self.engine
             .add_global_callback(Key::Esc, |s| s.select_menubar());
+        Ok(())
     }
 
     // Creates a form row containing description on the left and an editable field on the right.
@@ -228,7 +233,7 @@ impl Graphics {
                                     cv.path.as_ref().unwrap()
                                 );
                                 match render_pdf(&cv) {
-                                    Err(e) => eprintln!("Could not render PDF."),
+                                    Err(e) => eprintln!("Could not render PDF:\n\t {}", e),
                                     Ok(_) => println!("CV rendered successfully."),
                                 }
                             }
@@ -264,16 +269,21 @@ impl Graphics {
                         .selection()
                         .unwrap()[..]
                     {
+                        //TODO: handle all error cases (dialog box to the user, maybe?)
                         "email" => {
-                            res.push(Contact::Email(EmailAddress {
-                                address: data.to_string(),
-                            }));
+                            if let Ok(address) = EmailAddress::from(&data.to_string()) {
+                                res.push(Contact::Email(address));
+                            }
                         }
                         "website" => {
-                            res.push(Contact::Website(Url::from_str(&data).unwrap()));
+                            if let Ok(url) = Url::from_str(&data) {
+                                res.push(Contact::Website(url));
+                            }
                         }
                         "phone" => {
-                            res.push(Contact::Phone(PhoneNumber::from_str(&data).unwrap()));
+                            if let Ok(number) = PhoneNumber::from_str(&data) {
+                                res.push(Contact::Phone(number));
+                            }
                         }
                         _ => panic!("Unexpected selection."),
                     }

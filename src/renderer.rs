@@ -257,15 +257,15 @@ impl<'a> Renderer<'a> {
     where
         T: Renderable,
     {
-        self.render_text(
-            label,
-            RenderParams::default().with_font_type(FontType::Italic),
-        );
-        let Mm(width) = self.boundaries.width;
-        data.iter().for_each(|mut item| {
-            item.render_object(self);
-            //self.render_text_with_offset(&format!("{:?}", experience), width * 0.25);
-        });
+        if !data.is_empty() {
+            self.render_text(
+                label,
+                RenderParams::default().with_font_type(FontType::Italic),
+            );
+            data.iter().for_each(|item| {
+                item.render_object(self);
+            });
+        }
         Ok(())
     }
 

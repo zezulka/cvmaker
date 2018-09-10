@@ -33,6 +33,8 @@ where
         }
     }
 
+    //TODO use memory FS in tests
+    #[allow(dead_code)]
     fn new_testing() -> CVManagerFileBased<MemoryFS> {
         CVManagerFileBased {
             cvs_path: "".to_string(),
@@ -51,12 +53,15 @@ where
         if let Err(err) = json_str {
             return Err(err.to_string());
         }
+        let json_str = json_str.unwrap();
         let path = self.backend.path(cv.path.as_ref().unwrap().to_string());
         if let Some(p) = path.parent() {
             return match p.mkdir() {
                 Ok(_) => {
                     if let Ok(mut vfile) = path.create() {
-                        vfile.write(json_str.unwrap().as_bytes());
+                        if let Err(err) = vfile.write(json_str.as_bytes()) {
+                            eprintln!("{}", err);
+                        }
                     }
                     Ok(())
                 }

@@ -10,22 +10,6 @@ use url::Url;
 use url_serde;
 use vfs::VPath;
 
-// Used for testing purposes only.
-pub fn basic_cv_factory() -> CV {
-    CVBuilder::default(basic_info_factory()).build().unwrap()
-}
-
-// Used for testing purposes only.
-fn basic_info_factory() -> BasicInfo {
-    let email = Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap());
-    BasicInfo::new(
-        "Peter",
-        "Raskolnikov",
-        NaiveDate::from_ymd(2000, 1, 1),
-        vec![email],
-    )
-}
-
 // Coming up with an address scheme is a pain in itself. Let's at least
 // define some format
 // https://en.wikipedia.org/wiki/Address_(geography)
@@ -46,21 +30,30 @@ impl Hash for Address {
     }
 }
 
+fn are_hash_equal<T>(first: &T, second: &T) -> bool
+where
+    T: Hash,
+{
+    let mut first_hasher = DefaultHasher::new();
+    let mut second_hasher = DefaultHasher::new();
+    first.hash(&mut first_hasher);
+    second.hash(&mut second_hasher);
+    first_hasher.finish() == second_hasher.finish()
+}
+
 impl PartialEq for Address {
     fn eq(&self, other: &Self) -> bool {
-        let mut o = DefaultHasher::new();
-        let mut s = DefaultHasher::new();
-        self.hash(&mut o);
-        self.hash(&mut s);
-        s.finish() == o.finish()
+        are_hash_equal(self, other)
     }
 }
 
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
 pub struct EmailAddress {
-    pub address: String,
+    address: String,
 }
 
+// TODO: Note: It would be much more idiomatic to implement the TryFrom/Into trait instead but
+// both traits only belong to nighly-only experimental API. Leave it this way for the time being.
 impl EmailAddress {
     pub fn from(address: &str) -> Result<EmailAddress, String> {
         if !is_valid_email(address) {
@@ -126,11 +119,7 @@ impl Hash for Contact {
 
 impl PartialEq for Contact {
     fn eq(&self, other: &Self) -> bool {
-        let mut o = DefaultHasher::new();
-        let mut s = DefaultHasher::new();
-        self.hash(&mut o);
-        self.hash(&mut s);
-        s.finish() == o.finish()
+        are_hash_equal(self, other)
     }
 }
 
@@ -316,6 +305,21 @@ pub mod test {
     use super::*;
     use chrono::Datelike;
     use serde_test::{assert_ser_tokens, assert_tokens, Token};
+
+    fn basic_cv_factory() -> CV {
+        CVBuilder::default(basic_info_factory()).build().unwrap()
+    }
+
+    fn basic_info_factory() -> BasicInfo {
+        let email = Contact::Email(EmailAddress::from("peter@raskolnikov.ru").unwrap());
+        BasicInfo::new(
+            "Peter",
+            "Raskolnikov",
+            NaiveDate::from_ymd(2000, 1, 1),
+            vec![email],
+        )
+    }
+
     #[test]
     #[should_panic]
     fn timespan_invalid() {

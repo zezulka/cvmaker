@@ -22,19 +22,17 @@ mod base;
 mod dao;
 mod graphics;
 mod renderer;
-use base::CV;
 use cursive::Cursive;
 use graphics::Graphics;
 use open::that as open_url;
 use std::error::Error;
 
 pub fn run() -> Result<(), Box<Error>> {
-    //Graphics::new(Cursive::default()).run();
-    run_mocked_renderer();
-    Ok(())
+    Graphics::new(Cursive::default()).run()
+    //_run_mocked_renderer();
 }
 
-fn run_mocked_renderer() {
+fn _run_mocked_renderer() -> Result<(), Box<Error>> {
     use base::*;
     use chrono::NaiveDate;
     use renderer::render_pdf;
@@ -82,6 +80,7 @@ fn run_mocked_renderer() {
                 field_of_study: "Applied linguistics".to_string(),
             }]).build()
             .unwrap(),
-    );
-    open_url("/tmp/test_cv.pdf");
+    ).expect("Could not render the PDF properly.");
+    open_url("/tmp/test_cv.pdf").expect("Could not open rendered PDF.");
+    Ok(())
 }
