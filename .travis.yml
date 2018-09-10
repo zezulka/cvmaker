@@ -5,9 +5,9 @@ before_script:
   - rustup component add rustfmt-preview
   - cargo install clippy || echo "clippy is already installed"
   - rustup update
+  - export RUSTFLAGS="-D warnings"
 script:
   - cargo build --verbose
   - cargo fmt -- --check
-  - cargo clippy
   - cargo test --verbose
 
