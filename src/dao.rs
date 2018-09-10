@@ -146,9 +146,9 @@ where
 mod tests {
     use super::{gen_id, CVManagerFileBased};
     use base::test::basic_cv_factory;
-    use vfs::{VFS, MemoryFS, VPath};
-    use std::collections::HashSet;
     use dao::CVManager;
+    use std::collections::HashSet;
+    use vfs::{MemoryFS, VPath, VFS};
     type CVDao = CVManagerFileBased<MemoryFS>;
     #[test]
     fn test_id_gen_uniqueness() {
