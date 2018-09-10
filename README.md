@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zezulka/cvmaker.svg?branch=master)](https://travis-ci.org/zezulka/cvmaker)
+
 This project serves as a toy project with the intention to learn basics of
 the Rust programming language. Also, I want to develop an application in this
 language which will serve a REAL purpose. The gist of the application is
