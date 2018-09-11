@@ -244,6 +244,26 @@ impl Graphics {
         );
     }
 
+    fn get_data_form_row(view: &mut View) -> Option<String> {
+        let data_index = 1;
+        match Rc::try_unwrap(
+            view.as_any_mut()
+                .downcast_mut::<LinearLayout>()
+                .unwrap()
+                .get_child_mut(data_index)
+                .unwrap()
+                .as_any_mut()
+                .downcast_mut::<IdView<BoxView<EditView>>>()
+                .unwrap()
+                .get_mut()
+                .get_inner()
+                .get_content(),
+        ) {
+            Ok(data) => Some(data),
+            Err(_) => None,
+        }
+    }
+
     fn collect_contacts(c: &mut Cursive) -> Vec<Contact> {
         let mut res = vec![];
         let mut contacts_root = c.find_id::<LinearLayout>(CONTACTS_ID).unwrap();
@@ -268,49 +288,29 @@ impl Graphics {
                         .unwrap()
                         .selection()
                         .unwrap()[..]
-                    {
-                        //TODO: handle all error cases (dialog box to the user, maybe?)
-                        "email" => {
-                            if let Ok(address) = EmailAddress::from(&data.to_string()) {
-                                res.push(Contact::Email(address));
-                            }
+                        {
+                            //TODO: handle all error cases (dialog box to the user, maybe?)
+                            "email" => {
+                                if let Ok(address) = EmailAddress::from(&data.to_string()) {
+                                    res.push(Contact::Email(address));
+                                }
+                            },
+                            "website" => {
+                                if let Ok(url) = Url::from_str(&data) {
+                                    res.push(Contact::Website(url));
+                                }
+                            },
+                            "phone" => {
+                                if let Ok(number) = PhoneNumber::from_str(&data) {
+                                    res.push(Contact::Phone(number));
+                                }
+                            },
+                            _ => panic!("Unexpected selection."),
                         }
-                        "website" => {
-                            if let Ok(url) = Url::from_str(&data) {
-                                res.push(Contact::Website(url));
-                            }
-                        }
-                        "phone" => {
-                            if let Ok(number) = PhoneNumber::from_str(&data) {
-                                res.push(Contact::Phone(number));
-                            }
-                        }
-                        _ => panic!("Unexpected selection."),
-                    }
                 }
             }),
         );
         res
-    }
-
-    fn get_data_form_row(view: &mut View) -> Option<String> {
-        let data_index = 1;
-        match Rc::try_unwrap(
-            view.as_any_mut()
-                .downcast_mut::<LinearLayout>()
-                .unwrap()
-                .get_child_mut(data_index)
-                .unwrap()
-                .as_any_mut()
-                .downcast_mut::<IdView<BoxView<EditView>>>()
-                .unwrap()
-                .get_mut()
-                .get_inner()
-                .get_content(),
-        ) {
-            Ok(data) => Some(data),
-            Err(_) => None,
-        }
     }
 
     fn collect_experience(c: &mut Cursive) -> Vec<Experience> {
@@ -323,11 +323,7 @@ impl Graphics {
             Box::new(|s| {
                 if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
                     let mut lin_lay = id_view.get_mut();
-                    let from = 0;
-                    let to = 1;
-                    let employer = 2;
-                    let job_name = 3;
-                    let description = 4;
+                    let (from, to, employer, job_name, description) = (0,1,2,3,4);
                     let from = lin_lay
                         .get_child_mut(from)
                         .unwrap()
@@ -351,6 +347,7 @@ impl Graphics {
                     let description =
                         Self::get_data_form_row(lin_lay.get_child_mut(description).unwrap());
                     // This runs here...
+                    //println!("{:?} {:?} {:?} {:?} {:?}", from, to, employer, job_name, description);
                     if let (
                         Some(from),
                         Some(to),
@@ -480,7 +477,7 @@ impl Graphics {
         res
     }
 
-    fn collect_basic_info(c: &mut Cursive) -> Option<BasicInfo> {
+    fn collect_basic_info(c: &mut Cursive) -> Result<BasicInfo, &str> {
         let name = c
             .call_on_id("Name", |s: &mut BoxView<EditView>| {
                 s.get_inner().get_content()
@@ -493,17 +490,26 @@ impl Graphics {
             .call_on_id("Date of birth", |s: &mut DateView| s.retrieve_date())
             .unwrap()
             .unwrap();
-        Some(BasicInfo::new(
+        let contacts = Self::collect_contacts(c);
+        if contacts.is_empty() {
+            return Err("There must be at least one valid contact filled in.");
+        }
+        Ok(BasicInfo::new(
             &name,
             &surname,
             dob,
-            Self::collect_contacts(c),
+            contacts,
         ))
     }
 
     // This handler is responsible for collecting the data from the "New CV" form.
     pub fn collect_form_data(c: &mut Cursive) -> Option<CV> {
-        if let Some(basic) = Self::collect_basic_info(c) {
+        let mut error = String::new();
+        let basic = match Self::collect_basic_info(c) {
+            Ok(b) => Some(b),
+            Err(e) => { error = e.to_string(); None }
+        };
+        if let Some(basic) = basic {
             return match CVBuilder::default(basic)
                 .experience(Self::collect_experience(c))
                 .education(Self::collect_education(c))
@@ -512,11 +518,13 @@ impl Graphics {
             {
                 Ok(cv) => Some(cv),
                 Err(err) => {
-                    eprintln!("{}", err);
+                    error += "\n";
+                    error += &err;
                     None
                 }
             };
         }
+        c.add_layer(Dialog::info(error));
         None
     }
 
