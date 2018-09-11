@@ -288,25 +288,25 @@ impl Graphics {
                         .unwrap()
                         .selection()
                         .unwrap()[..]
-                        {
-                            //TODO: handle all error cases (dialog box to the user, maybe?)
-                            "email" => {
-                                if let Ok(address) = EmailAddress::from(&data.to_string()) {
-                                    res.push(Contact::Email(address));
-                                }
-                            },
-                            "website" => {
-                                if let Ok(url) = Url::from_str(&data) {
-                                    res.push(Contact::Website(url));
-                                }
-                            },
-                            "phone" => {
-                                if let Ok(number) = PhoneNumber::from_str(&data) {
-                                    res.push(Contact::Phone(number));
-                                }
-                            },
-                            _ => panic!("Unexpected selection."),
+                    {
+                        //TODO: handle all error cases (dialog box to the user, maybe?)
+                        "email" => {
+                            if let Ok(address) = EmailAddress::from(&data.to_string()) {
+                                res.push(Contact::Email(address));
+                            }
                         }
+                        "website" => {
+                            if let Ok(url) = Url::from_str(&data) {
+                                res.push(Contact::Website(url));
+                            }
+                        }
+                        "phone" => {
+                            if let Ok(number) = PhoneNumber::from_str(&data) {
+                                res.push(Contact::Phone(number));
+                            }
+                        }
+                        _ => panic!("Unexpected selection."),
+                    }
                 }
             }),
         );
@@ -323,7 +323,7 @@ impl Graphics {
             Box::new(|s| {
                 if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
                     let mut lin_lay = id_view.get_mut();
-                    let (from, to, employer, job_name, description) = (0,1,2,3,4);
+                    let (from, to, employer, job_name, description) = (0, 1, 2, 3, 4);
                     let from = lin_lay
                         .get_child_mut(from)
                         .unwrap()
@@ -494,12 +494,7 @@ impl Graphics {
         if contacts.is_empty() {
             return Err("There must be at least one valid contact filled in.");
         }
-        Ok(BasicInfo::new(
-            &name,
-            &surname,
-            dob,
-            contacts,
-        ))
+        Ok(BasicInfo::new(&name, &surname, dob, contacts))
     }
 
     // This handler is responsible for collecting the data from the "New CV" form.
@@ -507,7 +502,10 @@ impl Graphics {
         let mut error = String::new();
         let basic = match Self::collect_basic_info(c) {
             Ok(b) => Some(b),
-            Err(e) => { error = e.to_string(); None }
+            Err(e) => {
+                error = e.to_string();
+                None
+            }
         };
         if let Some(basic) = basic {
             return match CVBuilder::default(basic)
