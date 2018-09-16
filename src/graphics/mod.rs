@@ -85,9 +85,13 @@ impl Graphics {
         if label_text.is_empty() {
             panic!("Got empty label text, expected nonempty.");
         }
-        LinearLayout::horizontal()
+        let data_child = EditView::new().fixed_width(col_size).with_id(label_text);
+        let mut result = LinearLayout::horizontal()
             .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(col_size))
-            .child(EditView::new().fixed_width(col_size).with_id(label_text))
+            .child(data_child);
+        // TODO: Helper "assertion" which should be removed after the problem is fixed.
+        result.get_child_mut(1).unwrap().as_any_mut().downcast_ref::<IdView<BoxView<EditView>>>().unwrap();
+        result
     }
 
     fn form_row_default_col_size(label_text: &str) -> LinearLayout {
@@ -341,13 +345,11 @@ impl Graphics {
                         .get_mut()
                         .retrieve_date();
                     let employer =
-                        Self::get_data_form_row(lin_lay.get_child_mut(employer).unwrap());
+                        Self::get_data_form_row(lin_lay.get_child_mut(employer).expect("could not retrieve employer row"));
                     let job_name =
-                        Self::get_data_form_row(lin_lay.get_child_mut(job_name).unwrap());
+                        Self::get_data_form_row(lin_lay.get_child_mut(job_name).expect("could not retrieve job_name row"));
                     let description =
-                        Self::get_data_form_row(lin_lay.get_child_mut(description).unwrap());
-                    // This runs here...
-                    //println!("{:?} {:?} {:?} {:?} {:?}", from, to, employer, job_name, description);
+                        Self::get_data_form_row(lin_lay.get_child_mut(description).expect("could not retrieve employer row"));
                     if let (
                         Some(from),
                         Some(to),
@@ -356,7 +358,6 @@ impl Graphics {
                         Some(description),
                     ) = (from, to, employer, job_name, description)
                     {
-                        // ...but here, it doesn't.
                         res.push(Experience {
                             span: TimeSpan::new(from, to),
                             employer,
