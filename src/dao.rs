@@ -92,8 +92,7 @@ where
                 id.push_str("/");
                 id.push_str(&gen_id());
                 id.push_str(".json");
-                let id = self.backend.path(id);
-                cv.set_path(Box::new(id));
+                cv.set_path(&self.backend.path(id));
                 self.save_cv(&cv)
             }
         }
@@ -165,7 +164,7 @@ mod tests {
         let fs = MemoryFS::new();
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
-        cv.set_path(Box::new(fs.path("")));
+        cv.set_path(&fs.path(""));
         assert_eq!(
             Err("Cannot add a CV which already has an ID.".to_string()),
             manager.add_cv(&mut cv)
@@ -220,7 +219,7 @@ mod tests {
     fn remove_cv_nonexistent_path() {
         let manager = CVDao::new_testing();
         let mut cv = basic_cv_factory();
-        cv.set_path(Box::new(manager.backend.path("/foobar")));
+        cv.set_path(&manager.backend.path("/foobar"));
         assert_eq!(
             Err("The path '/foobar' does not exist.".to_string()),
             manager.remove_cv(&mut cv)

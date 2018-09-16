@@ -286,7 +286,7 @@ pub struct CV {
 }
 
 impl CV {
-    pub fn set_path(&mut self, path: Box<'static + VPath>) {
+    pub fn set_path(&mut self, path: &VPath) {
         self.path = Some(path.to_string().to_string());
     }
 }

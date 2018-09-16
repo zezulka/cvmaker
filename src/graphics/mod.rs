@@ -5,6 +5,7 @@ use base::TimeSpan;
 use base::{
     BasicInfo, CVBuilder, Contact, Education, EmailAddress, Experience, Lang, Language, CV,
 };
+use chrono::NaiveDate;
 use cursive::align::HAlign;
 use cursive::event::Key;
 use cursive::menu::MenuTree;
@@ -268,6 +269,17 @@ impl Graphics {
         Some(data.to_string())
     }
 
+    fn get_date(lin_lay: &mut LinearLayout, idx: usize) -> Option<NaiveDate> {
+        lin_lay
+            .get_child_mut(idx)
+            .unwrap()
+            .as_any_mut()
+            .downcast_mut::<IdView<DateView>>()
+            .unwrap()
+            .get_mut()
+            .retrieve_date()
+    }
+
     fn collect_contacts(c: &mut Cursive) -> Vec<Contact> {
         let mut res = vec![];
         let mut contacts_root = c.find_id::<LinearLayout>(CONTACTS_ID).unwrap();
@@ -328,22 +340,8 @@ impl Graphics {
                 if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
                     let mut lin_lay = id_view.get_mut();
                     let (from, to, employer, job_name, description) = (0, 1, 2, 3, 4);
-                    let from = lin_lay
-                        .get_child_mut(from)
-                        .unwrap()
-                        .as_any_mut()
-                        .downcast_mut::<IdView<DateView>>()
-                        .unwrap()
-                        .get_mut()
-                        .retrieve_date();
-                    let to = lin_lay
-                        .get_child_mut(to)
-                        .unwrap()
-                        .as_any_mut()
-                        .downcast_mut::<IdView<DateView>>()
-                        .unwrap()
-                        .get_mut()
-                        .retrieve_date();
+                    let from = Self::get_date(&mut lin_lay, from);
+                    let to = Self::get_date(&mut lin_lay, to);
                     let employer = Self::get_data_form_row(
                         lin_lay
                             .get_child_mut(employer)
@@ -391,11 +389,7 @@ impl Graphics {
             Box::new(|s| {
                 if let Some(id_view) = s.downcast_mut::<IdView<LinearLayout>>() {
                     let mut lin_lay = id_view.get_mut();
-                    let from = 0;
-                    let to = 1;
-                    let uni_name = 2;
-                    let degree = 3;
-                    let field_of_study = 4;
+                    let (from, to, uni_name, degree, field_of_study) = (0, 1, 2, 3, 4);
                     let from = lin_lay
                         .get_child_mut(from)
                         .unwrap()

@@ -190,7 +190,7 @@ impl<'a> Renderer<'a> {
     //TODO wrap lines if they are too long
     fn render_text_vector(
         &mut self,
-        data: Vec<String>,
+        data: &[String],
         RenderParams { offset, f_type }: RenderParams,
     ) {
         let font_size = 15;
@@ -219,7 +219,7 @@ impl<'a> Renderer<'a> {
                 future_row_pos += font_size as f64;
             });
         }
-        self.move_cursor_with_offset(RendererCoordinates {
+        self.move_cursor_with_offset(&RendererCoordinates {
             row: Mm(future_row_pos),
             col: Mm(0.0),
         });
@@ -227,14 +227,14 @@ impl<'a> Renderer<'a> {
     }
 
     fn render_text(&mut self, text: &str, render_params: RenderParams) {
-        self.render_text_vector(vec![text.to_string()], render_params);
+        self.render_text_vector(&[text.to_string()], render_params);
     }
 
     /// Implementation note: The y axis is inverted, therefore passing RendererCoordinates { col : Mm(0.0), row : Mm(5.5) }
     /// will have the intended effect of moving 5.5 mm BELOW, however, the rendering algorithm
     /// condiders the origin of the document as the left bottom corner, so y the value passed must
     /// be subtracted from the current cursor.
-    fn move_cursor_with_offset(&mut self, diff: RendererCoordinates) {
+    fn move_cursor_with_offset(&mut self, diff: &RendererCoordinates) {
         self.current.col += diff.col;
         self.current.row -= diff.row;
     }
@@ -249,11 +249,11 @@ impl<'a> Renderer<'a> {
             .contacts
             .iter()
             .for_each(|contact| basic_vec.push(contact.to_string()));
-        self.render_text_vector(basic_vec, RenderParams::default());
+        self.render_text_vector(&basic_vec, RenderParams::default());
         Ok(())
     }
 
-    fn render_data_vector<T>(&mut self, data: &Vec<T>, label: &str) -> RendererResult
+    fn render_data_vector<T>(&mut self, data: &[T], label: &str) -> RendererResult
     where
         T: Renderable,
     {

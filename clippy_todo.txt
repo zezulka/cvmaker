@@ -1,0 +1,43 @@
+warning: this argument is passed by value, but not consumed in the function body
+   --> src/base.rs:289:38
+    |
+289 |     pub fn set_path(&mut self, path: Box<'static + VPath>) {
+    |                                      ^^^^^^^^^^^^^^^^^^^^ help: consider taking a reference instead: `&Box<'static + VPath>`
+    |
+    = note: #[warn(clippy::needless_pass_by_value)] on by default
+    = help: for further information visit https://rust-lang-nursery.github.io/rust-clippy/v0.0.212/index.html#needless_pass_by_value
+
+warning: this argument is passed by value, but not consumed in the function body
+   --> src/renderer.rs:193:15
+    |
+193 |         data: Vec<String>,
+    |               ^^^^^^^^^^^ help: consider changing the type to: `&[String]`
+    |
+    = help: for further information visit https://rust-lang-nursery.github.io/rust-clippy/v0.0.212/index.html#needless_pass_by_value
+
+warning: this argument is passed by value, but not consumed in the function body
+   --> src/renderer.rs:237:49
+    |
+237 |     fn move_cursor_with_offset(&mut self, diff: RendererCoordinates) {
+    |                                                 ^^^^^^^^^^^^^^^^^^^ help: consider taking a reference instead: `&RendererCoordinates`
+    |
+help: consider marking this type as Copy
+   --> src/renderer.rs:28:1
+    |
+28  | / struct RendererCoordinates {
+29  | |     col: Mm,
+30  | |     row: Mm,
+31  | | }
+    | |_^
+    = help: for further information visit https://rust-lang-nursery.github.io/rust-clippy/v0.0.212/index.html#needless_pass_by_value
+
+warning: writing `&Vec<_>` instead of `&[_]` involves one more reference and cannot be used with non-Vec-based slices.
+   --> src/renderer.rs:256:47
+    |
+256 |     fn render_data_vector<T>(&mut self, data: &Vec<T>, label: &str) -> RendererResult
+    |                                               ^^^^^^^ help: change this to: `&[T]`
+    |
+    = note: #[warn(clippy::ptr_arg)] on by default
+    = help: for further information visit https://rust-lang-nursery.github.io/rust-clippy/v0.0.212/index.html#ptr_arg
+
+
