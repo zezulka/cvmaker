@@ -90,7 +90,12 @@ impl Graphics {
             .child(TextView::new_with_content(TextContent::new(label_text)).fixed_width(col_size))
             .child(data_child);
         // TODO: Helper "assertion" which should be removed after the problem is fixed.
-        result.get_child_mut(1).unwrap().as_any_mut().downcast_ref::<IdView<BoxView<EditView>>>().unwrap();
+        result
+            .get_child_mut(1)
+            .unwrap()
+            .as_any_mut()
+            .downcast_ref::<IdView<BoxView<EditView>>>()
+            .unwrap();
         result
     }
 
@@ -250,22 +255,17 @@ impl Graphics {
 
     fn get_data_form_row(view: &mut View) -> Option<String> {
         let data_index = 1;
-        match Rc::try_unwrap(
-            view.as_any_mut()
-                .downcast_mut::<LinearLayout>()
-                .unwrap()
-                .get_child_mut(data_index)
-                .unwrap()
-                .as_any_mut()
-                .downcast_mut::<IdView<BoxView<EditView>>>()
-                .unwrap()
-                .get_mut()
-                .get_inner()
-                .get_content(),
-        ) {
-            Ok(data) => Some(data),
-            Err(_) => None,
-        }
+        let aux = view
+            .as_any_mut()
+            .downcast_mut::<LinearLayout>()
+            .unwrap()
+            .get_child_mut(data_index)
+            .unwrap()
+            .as_any_mut()
+            .downcast_mut::<IdView<BoxView<EditView>>>()
+            .unwrap();
+        let data = aux.get_mut().get_inner().get_content();
+        Some(data.to_string())
     }
 
     fn collect_contacts(c: &mut Cursive) -> Vec<Contact> {
@@ -344,12 +344,21 @@ impl Graphics {
                         .unwrap()
                         .get_mut()
                         .retrieve_date();
-                    let employer =
-                        Self::get_data_form_row(lin_lay.get_child_mut(employer).expect("could not retrieve employer row"));
-                    let job_name =
-                        Self::get_data_form_row(lin_lay.get_child_mut(job_name).expect("could not retrieve job_name row"));
-                    let description =
-                        Self::get_data_form_row(lin_lay.get_child_mut(description).expect("could not retrieve employer row"));
+                    let employer = Self::get_data_form_row(
+                        lin_lay
+                            .get_child_mut(employer)
+                            .expect("could not retrieve employer row"),
+                    );
+                    let job_name = Self::get_data_form_row(
+                        lin_lay
+                            .get_child_mut(job_name)
+                            .expect("could not retrieve job_name row"),
+                    );
+                    let description = Self::get_data_form_row(
+                        lin_lay
+                            .get_child_mut(description)
+                            .expect("could not retrieve employer row"),
+                    );
                     if let (
                         Some(from),
                         Some(to),
@@ -408,7 +417,6 @@ impl Graphics {
                     let degree = Self::get_data_form_row(lin_lay.get_child_mut(degree).unwrap());
                     let field_of_study =
                         Self::get_data_form_row(lin_lay.get_child_mut(field_of_study).unwrap());
-                    // This runs here...
                     if let (
                         Some(from),
                         Some(to),
@@ -417,7 +425,6 @@ impl Graphics {
                         Some(field_of_study),
                     ) = (from, to, uni_name, degree, field_of_study)
                     {
-                        // ...but here, it doesn't.
                         res.push(Education {
                             span: TimeSpan::new(from, to),
                             uni_name,
